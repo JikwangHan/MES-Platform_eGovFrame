@@ -24,45 +24,45 @@ public class BasicValidator implements Validator {
 
         // 원본 존재 여부부터 확인하여 기본 입력 계약을 지킵니다.
         if (candidate == null || candidate.getRawEnvelope() == null) {
-            return fail(result, "원본 데이터가 없습니다.");
+            return fail(result, "INGRESS_PAYLOAD_EMPTY:원본 데이터가 없습니다.");
         }
         // 메시지 유형이 없으면 데이터 해석이 불가능합니다.
         if (candidate.getMessageType() == null) {
-            return fail(result, "messageType이 없습니다.");
+            return fail(result, "VALIDATION_MISSING_FIELD:messageType");
         }
         Map<String, Object> payload = candidate.getNormalizedPayload();
         if (payload == null || payload.isEmpty()) {
-            return fail(result, "정규화된 payload가 비어 있습니다.");
+            return fail(result, "NORMALIZE_PARSE_ERROR:정규화된 payload가 비어 있습니다.");
         }
         // 장비 식별자는 추적과 분석에 필수입니다.
         if (!hasValue(payload, "deviceId", "device_id")) {
-            return fail(result, "deviceId가 없습니다.");
+            return fail(result, "VALIDATION_MISSING_FIELD:deviceId");
         }
         // 시간 정보는 순서 판단과 이력 관리에 필수입니다.
         if (!hasValue(payload, "timestamp")) {
-            return fail(result, "timestamp가 없습니다.");
+            return fail(result, "VALIDATION_MISSING_FIELD:timestamp");
         }
         // 이벤트 ID는 동일 시각 중복을 구분하기 위한 기준입니다.
         if (!hasValue(payload, "eventId", "event_id")) {
-            return fail(result, "eventId가 없습니다.");
+            return fail(result, "VALIDATION_MISSING_FIELD:eventId");
         }
         // 프로토콜/스키마 버전은 해석 규칙을 고정하기 위한 필수 값입니다.
         if (!hasValue(payload, "protocolVersion")) {
-            return fail(result, "protocolVersion이 없습니다.");
+            return fail(result, "VALIDATION_MISSING_FIELD:protocolVersion");
         }
         if (!hasValue(payload, "schemaVersion")) {
-            return fail(result, "schemaVersion이 없습니다.");
+            return fail(result, "VALIDATION_MISSING_FIELD:schemaVersion");
         }
         // 분류 결과가 없으면 장비별 규칙 적용이 불가능합니다.
         if (classificationResult == null) {
-            return fail(result, "분류 결과가 없습니다.");
+            return fail(result, "CLASSIFICATION_MISSING_DEVICE_TYPE:분류 결과 없음");
         }
         if (isBlank(classificationResult.getDeviceTypeId())) {
-            return fail(result, "deviceTypeId가 없습니다.");
+            return fail(result, "CLASSIFICATION_MISSING_DEVICE_TYPE:deviceTypeId 없음");
         }
         // 신뢰도가 낮으면 잘못된 장비 분류일 가능성이 높습니다.
         if (classificationResult.getConfidence() < MIN_CONFIDENCE) {
-            return fail(result, "분류 신뢰도가 낮습니다.");
+            return fail(result, "CLASSIFICATION_LOW_CONFIDENCE:기준값 미만");
         }
 
         // 모든 조건을 통과하면 정상 처리로 표시합니다.

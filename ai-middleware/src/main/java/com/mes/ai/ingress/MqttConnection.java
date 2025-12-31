@@ -1,0 +1,27 @@
+package com.mes.ai.ingress;
+
+/**
+ * MQTT 연결 인터페이스입니다.
+ * 목적: 실제 MQTT 라이브러리 의존성을 숨깁니다.
+ * 기능: 연결/구독/해제를 표준 메서드로 제공합니다.
+ * 이유: 구현 교체가 쉬운 구조를 만들기 위함입니다.
+ */
+public interface MqttConnection {
+    /**
+     * 브로커에 연결합니다.
+     * 목적: 수신 준비를 완료합니다.
+     */
+    void connect();
+
+    /**
+     * 토픽을 구독하고 메시지 수신 콜백을 설정합니다.
+     * 목적: 수신 데이터를 처리기로 전달합니다.
+     */
+    void subscribe(MqttMessageHandler handler);
+
+    /**
+     * 연결을 종료합니다.
+     * 목적: 리소스를 정리합니다.
+     */
+    void disconnect();
+}

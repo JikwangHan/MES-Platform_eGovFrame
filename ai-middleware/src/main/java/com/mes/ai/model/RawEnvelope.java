@@ -7,12 +7,29 @@ package com.mes.ai.model;
  * 이유: 재처리/감사/오류 분석 시 원본이 반드시 필요하기 때문입니다.
  */
 public class RawEnvelope {
+    private Long id;
     private String receivedAt;
     private String ingressType;
     private String sourceIdHash;
     private String contentType;
     private String payloadBase64;
     private String payloadHash;
+
+    /**
+     * 목적: 원본 데이터의 DB 식별자를 조회합니다.
+     * 이유: 표준/격리 데이터와의 연계를 위해 필요합니다.
+     */
+    public Long getId() {
+        return id;
+    }
+
+    /**
+     * 목적: 원본 데이터의 DB 식별자를 설정합니다.
+     * 이유: 저장 후 생성된 키를 파이프라인에서 재사용하기 위함입니다.
+     */
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     /**
      * 목적: 수신 시각을 조회합니다.

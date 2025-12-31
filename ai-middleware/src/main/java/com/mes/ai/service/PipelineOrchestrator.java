@@ -70,6 +70,8 @@ public class PipelineOrchestrator {
             envelope.setDeviceId(classificationResult.getDeviceTypeId());
             envelope.setTimestamp(rawEnvelope.getReceivedAt());
             envelope.setPayload(candidate.getNormalizedPayload());
+            // 원본과 표준의 연결을 유지하기 위해 rawId를 설정합니다.
+            envelope.setRawId(rawEnvelope.getId());
 
             // 검증을 통과한 표준 데이터만 저장합니다.
             storeService.storeStandard(envelope);

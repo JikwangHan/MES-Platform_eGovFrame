@@ -4,8 +4,10 @@ import com.mes.ai.model.EnvelopeCandidate;
 import com.mes.ai.model.MessageType;
 import com.mes.ai.model.RawEnvelope;
 import com.mes.ai.pipeline.Normalizer;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mes.ai.util.Base64Utils;
-import com.mes.ai.util.SimpleJsonParser;
+import com.mes.ai.util.JacksonUtils;
 
 import java.util.Collections;
 import java.util.Map;
@@ -17,6 +19,8 @@ import java.util.Map;
  * 이유: 후속 단계에서 공통 키/값 구조로 처리하기 위함입니다.
  */
 public class JsonNormalizer implements Normalizer {
+    private static final ObjectMapper OBJECT_MAPPER = JacksonUtils.getObjectMapper();
+
     @Override
     public EnvelopeCandidate normalize(RawEnvelope rawEnvelope) {
         // 후보 객체는 항상 생성해 반환하여 다음 단계와의 계약을 지킵니다.
@@ -32,12 +36,12 @@ public class JsonNormalizer implements Normalizer {
         // Base64로 보관된 원본을 복원합니다.
         String payload = Base64Utils.decodeToString(rawEnvelope.getPayloadBase64());
         try {
-            // 최소 JSON 파서를 사용해 평면 객체를 파싱합니다.
-            Map<String, Object> parsed = SimpleJsonParser.parseObject(payload);
+            // Jackson을 사용해 JSON을 안전하게 파싱합니다.
+            Map<String, Object> parsed = OBJECT_MAPPER.readValue(payload, new TypeReference<Map<String, Object>>() {});
             candidate.setNormalizedPayload(parsed);
             // messageType은 표준 메시지 분류에 필요하므로 여기서 추출합니다.
             candidate.setMessageType(extractMessageType(parsed));
-        } catch (IllegalArgumentException ex) {
+        } catch (Exception ex) {
             // 파싱 실패 시 검증 단계에서 실패 처리하도록 빈 데이터로 반환합니다.
             candidate.setNormalizedPayload(Collections.emptyMap());
         }

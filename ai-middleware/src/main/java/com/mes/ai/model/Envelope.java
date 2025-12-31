@@ -12,12 +12,29 @@ import java.util.Map;
  * 유지보수와 확장이 쉬워집니다.
  */
 public class Envelope {
+    private Long rawId;
     private String protocolVersion;
     private String schemaVersion;
     private MessageType messageType;
     private String deviceId;
     private String timestamp;
     private Map<String, Object> payload;
+
+    /**
+     * 목적: 원본 데이터의 DB 식별자를 조회합니다.
+     * 이유: 표준 데이터와 원본 데이터의 연계를 유지합니다.
+     */
+    public Long getRawId() {
+        return rawId;
+    }
+
+    /**
+     * 목적: 원본 데이터의 DB 식별자를 설정합니다.
+     * 이유: 표준 저장 시 raw_data와의 연결을 보장합니다.
+     */
+    public void setRawId(Long rawId) {
+        this.rawId = rawId;
+    }
 
     /**
      * 목적: 통신 규격 버전을 조회합니다.

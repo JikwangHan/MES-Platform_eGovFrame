@@ -44,7 +44,7 @@ public final class SimpleJsonParser {
 
             // 키는 JSON 규격상 문자열이므로 문자열 파서를 사용합니다.
             ParseResult keyResult = parseString(source, index);
-            String key = keyResult.value;
+            String key = (String) keyResult.value;
             index = skipWhitespace(source, keyResult.index);
 
             if (index >= source.length() || source.charAt(index) != ':') {
@@ -177,7 +177,7 @@ public final class SimpleJsonParser {
                 // 이스케이프 문자를 실제 문자로 변환합니다.
                 builder.append(unescape(next, source, i));
                 if (next == 'u') {
-                    // \uXXXX 형태는 총 6글자를 소비합니다.
+                    // \\uXXXX 형태는 총 6글자를 소비합니다.
                     i += 6;
                 } else {
                     i += 2;
