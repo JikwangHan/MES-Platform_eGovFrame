@@ -26,6 +26,10 @@ public class JdbcStoreService implements StoreService {
     private static final String INSERT_STANDARD_SQL =
             "INSERT INTO parsed_data (raw_id, standard_payload, schema_version, protocol_version, created_at) " +
             "VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)";
+    /** 재시도 횟수(기본 1회)입니다. */
+    private static final int DEFAULT_RETRY_COUNT = 1;
+    /** 재시도 대기 시간(ms)입니다. */
+    private static final long DEFAULT_RETRY_DELAY_MS = 300L;
 
     /** JDBC 연결을 제공하는 DataSource입니다. */
     private final DataSource dataSource;
@@ -46,24 +50,31 @@ public class JdbcStoreService implements StoreService {
         if (rawEnvelope == null) {
             return;
         }
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(INSERT_RAW_SQL, Statement.RETURN_GENERATED_KEYS)) {
-            statement.setString(1, rawEnvelope.getReceivedAt());
-            statement.setString(2, rawEnvelope.getIngressType());
-            statement.setString(3, rawEnvelope.getPayloadBase64());
-            statement.setString(4, rawEnvelope.getPayloadHash());
-            statement.setString(5, rawEnvelope.getSourceIdHash());
-            statement.setString(6, rawEnvelope.getContentType());
-            statement.executeUpdate();
+        int maxAttempts = resolveRetryCount();
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try (Connection connection = dataSource.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(INSERT_RAW_SQL, Statement.RETURN_GENERATED_KEYS)) {
+                statement.setString(1, rawEnvelope.getReceivedAt());
+                statement.setString(2, rawEnvelope.getIngressType());
+                statement.setString(3, rawEnvelope.getPayloadBase64());
+                statement.setString(4, rawEnvelope.getPayloadHash());
+                statement.setString(5, rawEnvelope.getSourceIdHash());
+                statement.setString(6, rawEnvelope.getContentType());
+                statement.executeUpdate();
 
-            // 생성된 raw_id를 원본에 반영합니다.
-            try (ResultSet keys = statement.getGeneratedKeys()) {
-                if (keys.next()) {
-                    rawEnvelope.setId(keys.getLong(1));
+                // 생성된 raw_id를 원본에 반영합니다.
+                try (ResultSet keys = statement.getGeneratedKeys()) {
+                    if (keys.next()) {
+                        rawEnvelope.setId(keys.getLong(1));
+                    }
                 }
+                return;
+            } catch (SQLException ex) {
+                if (attempt == maxAttempts) {
+                    throw new IllegalStateException("STORE_RAW_FAILED:원본 데이터 저장에 실패했습니다.", ex);
+                }
+                sleepRetry(attempt);
             }
-        } catch (SQLException ex) {
-            throw new IllegalStateException("원본 데이터 저장에 실패했습니다.", ex);
         }
     }
 
@@ -77,15 +88,22 @@ public class JdbcStoreService implements StoreService {
             throw new IllegalStateException("raw_id가 없어 표준 데이터를 저장할 수 없습니다.");
         }
         String payloadJson = toJson(envelope.getPayload());
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(INSERT_STANDARD_SQL)) {
-            statement.setLong(1, envelope.getRawId());
-            statement.setString(2, payloadJson);
-            statement.setString(3, envelope.getSchemaVersion());
-            statement.setString(4, envelope.getProtocolVersion());
-            statement.executeUpdate();
-        } catch (SQLException ex) {
-            throw new IllegalStateException("표준 데이터 저장에 실패했습니다.", ex);
+        int maxAttempts = resolveRetryCount();
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try (Connection connection = dataSource.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(INSERT_STANDARD_SQL)) {
+                statement.setLong(1, envelope.getRawId());
+                statement.setString(2, payloadJson);
+                statement.setString(3, envelope.getSchemaVersion());
+                statement.setString(4, envelope.getProtocolVersion());
+                statement.executeUpdate();
+                return;
+            } catch (SQLException ex) {
+                if (attempt == maxAttempts) {
+                    throw new IllegalStateException("STORE_STANDARD_FAILED:표준 데이터 저장에 실패했습니다.", ex);
+                }
+                sleepRetry(attempt);
+            }
         }
     }
 
@@ -98,6 +116,36 @@ public class JdbcStoreService implements StoreService {
             return objectMapper.writeValueAsString(payload);
         } catch (Exception ex) {
             throw new IllegalStateException("payload JSON 직렬화에 실패했습니다.", ex);
+        }
+    }
+
+    /**
+     * 목적: 재시도 횟수를 시스템 속성으로 제어합니다.
+     * 이유: 운영 환경에서 장애 대응 정책을 유연하게 적용합니다.
+     */
+    private int resolveRetryCount() {
+        String raw = System.getProperty("ai.jdbc.retry.count");
+        if (raw == null || raw.trim().isEmpty()) {
+            return DEFAULT_RETRY_COUNT + 1;
+        }
+        try {
+            int parsed = Integer.parseInt(raw.trim());
+            return Math.max(1, parsed + 1);
+        } catch (NumberFormatException ex) {
+            return DEFAULT_RETRY_COUNT + 1;
+        }
+    }
+
+    /**
+     * 목적: 재시도 간격을 둡니다.
+     * 이유: 일시적 DB 오류를 완화하기 위함입니다.
+     */
+    private void sleepRetry(int attempt) {
+        long delay = DEFAULT_RETRY_DELAY_MS * attempt;
+        try {
+            Thread.sleep(delay);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
         }
     }
 }

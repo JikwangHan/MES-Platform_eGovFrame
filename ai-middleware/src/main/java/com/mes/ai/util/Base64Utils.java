@@ -26,6 +26,15 @@ public final class Base64Utils {
     }
 
     /**
+     * 문자열을 Base64로 인코딩합니다.
+     * 목적: 기존 호출부 호환을 유지하면서 인코딩 기능을 제공합니다.
+     * 이유: 메서드 이름 차이로 인한 컴파일 오류를 예방합니다.
+     */
+    public static String encodeString(String value) {
+        return encode(value);
+    }
+
+    /**
      * Base64 문자열을 원문 문자열로 복원합니다.
      * 목적: 저장된 원본을 다시 처리할 수 있게 합니다.
      */
@@ -35,5 +44,17 @@ public final class Base64Utils {
         }
         byte[] decoded = Base64.getDecoder().decode(base64);
         return new String(decoded, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Base64 문자열을 바이트 배열로 복원합니다.
+     * 목적: 바이너리 파일 스캔 등 바이트 단위 처리가 필요할 때 사용합니다.
+     * 이유: 문자열 복원 시 손실될 수 있는 바이너리 데이터를 그대로 유지합니다.
+     */
+    public static byte[] decodeToBytes(String base64) {
+        if (base64 == null) {
+            return null;
+        }
+        return Base64.getDecoder().decode(base64);
     }
 }

@@ -14,6 +14,13 @@ import com.mes.ai.service.SecurityScanService;
 public class InMemorySecurityScanService implements SecurityScanService {
     @Override
     public ScanResult scan(ScanRequest request) {
+        // 테스트 환경에서는 시스템 속성으로 CLEAN 반환 여부를 제어합니다.
+        if (Boolean.parseBoolean(System.getProperty("ai.security.scan.mockClean", "false"))) {
+            ScanResult clean = new ScanResult();
+            clean.setStatus(ScanStatus.CLEAN);
+            clean.setEngine("IN_MEMORY");
+            return clean;
+        }
         // 실제 스캔 엔진이 없으므로 오류 상태로 반환해 파이프라인 진행을 막습니다.
         ScanResult result = new ScanResult();
         result.setStatus(ScanStatus.ERROR);

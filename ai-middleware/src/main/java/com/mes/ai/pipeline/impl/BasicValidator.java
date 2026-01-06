@@ -5,6 +5,8 @@ import com.mes.ai.model.EnvelopeCandidate;
 import com.mes.ai.model.ValidationResult;
 import com.mes.ai.pipeline.Validator;
 
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 
 /**
@@ -16,6 +18,8 @@ import java.util.Map;
 public class BasicValidator implements Validator {
     /** 분류 신뢰도 최소 기준값입니다. */
     private static final double MIN_CONFIDENCE = 0.5;
+    /** eventId 최소 길이 기준입니다. */
+    private static final int MIN_EVENT_ID_LENGTH = 3;
 
     @Override
     public ValidationResult validate(EnvelopeCandidate candidate, ClassificationResult classificationResult) {
@@ -46,12 +50,27 @@ public class BasicValidator implements Validator {
         if (!hasValue(payload, "eventId", "event_id")) {
             return fail(result, "VALIDATION_MISSING_FIELD:eventId");
         }
+        // eventId 길이가 너무 짧으면 추적성이 떨어집니다.
+        if (!hasMinLength(payload.get("eventId"), MIN_EVENT_ID_LENGTH)) {
+            return fail(result, "VALIDATION_INVALID_TYPE:eventId 길이 부족");
+        }
         // 프로토콜/스키마 버전은 해석 규칙을 고정하기 위한 필수 값입니다.
         if (!hasValue(payload, "protocolVersion")) {
             return fail(result, "VALIDATION_MISSING_FIELD:protocolVersion");
         }
         if (!hasValue(payload, "schemaVersion")) {
             return fail(result, "VALIDATION_MISSING_FIELD:schemaVersion");
+        }
+        // 버전 문자열은 숫자.숫자(또는 숫자.숫자.숫자) 형태를 기본으로 봅니다.
+        if (!isVersionLike(payload.get("protocolVersion"))) {
+            return fail(result, "VALIDATION_INVALID_TYPE:protocolVersion 형식 오류");
+        }
+        if (!isVersionLike(payload.get("schemaVersion"))) {
+            return fail(result, "VALIDATION_INVALID_TYPE:schemaVersion 형식 오류");
+        }
+        // timestamp는 UTC ISO-8601 형식으로 처리 가능해야 합니다.
+        if (!isIso8601(payload.get("timestamp"))) {
+            return fail(result, "VALIDATION_INVALID_TYPE:timestamp 형식 오류");
         }
         // 분류 결과가 없으면 장비별 규칙 적용이 불가능합니다.
         if (classificationResult == null) {
@@ -107,6 +126,53 @@ public class BasicValidator implements Validator {
      */
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    /**
+     * 문자열 길이가 최소 기준을 충족하는지 확인합니다.
+     * 목적: 추적 키(eventId) 품질을 보장합니다.
+     */
+    private boolean hasMinLength(Object value, int minLength) {
+        if (value == null) {
+            return false;
+        }
+        String text = String.valueOf(value).trim();
+        return text.length() >= minLength;
+    }
+
+    /**
+     * 버전 문자열이 기본 패턴인지 확인합니다.
+     * 목적: 스키마/프로토콜 버전 규칙을 최소 수준으로 강제합니다.
+     */
+    private boolean isVersionLike(Object value) {
+        if (value == null) {
+            return false;
+        }
+        String text = String.valueOf(value).trim();
+        if (text.isEmpty()) {
+            return false;
+        }
+        return text.matches("\\d+\\.\\d+(\\.\\d+)?");
+    }
+
+    /**
+     * ISO-8601 시간 형식인지 확인합니다.
+     * 목적: 시간 필드의 표준화를 보장합니다.
+     */
+    private boolean isIso8601(Object value) {
+        if (value == null) {
+            return false;
+        }
+        String text = String.valueOf(value).trim();
+        if (text.isEmpty()) {
+            return false;
+        }
+        try {
+            Instant.parse(text);
+            return true;
+        } catch (DateTimeParseException ex) {
+            return false;
+        }
     }
 
     /**

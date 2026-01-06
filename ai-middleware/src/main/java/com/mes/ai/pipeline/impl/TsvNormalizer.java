@@ -1,0 +1,162 @@
+package com.mes.ai.pipeline.impl;
+
+import com.mes.ai.model.EnvelopeCandidate;
+import com.mes.ai.model.MessageType;
+import com.mes.ai.model.RawEnvelope;
+import com.mes.ai.pipeline.Normalizer;
+import com.mes.ai.util.Base64Utils;
+
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+/**
+ * TSV 포맷을 기준으로 정규화합니다.
+ * 목적: 탭 구분 데이터 입력을 최소 수준으로 처리합니다.
+ * 기능: 헤더+데이터 2줄 구조 또는 key=value 목록을 Map으로 변환합니다.
+ * 이유: CSV 외에도 기초적인 구분자 포맷을 수용하기 위함입니다.
+ */
+public class TsvNormalizer implements Normalizer {
+    @Override
+    public EnvelopeCandidate normalize(RawEnvelope rawEnvelope) {
+        // 후보 객체는 항상 생성해 반환하여 다음 단계 계약을 지킵니다.
+        EnvelopeCandidate candidate = new EnvelopeCandidate();
+        candidate.setRawEnvelope(rawEnvelope);
+
+        if (rawEnvelope == null || rawEnvelope.getPayloadBase64() == null) {
+            // 원본이 없으면 빈 payload로 넘겨 검증 단계에서 실패 처리합니다.
+            candidate.setNormalizedPayload(Collections.emptyMap());
+            return candidate;
+        }
+
+        // Base64로 보관된 원본을 복원합니다.
+        String payload = Base64Utils.decodeToString(rawEnvelope.getPayloadBase64());
+        Map<String, Object> parsed = parseTsv(payload);
+        candidate.setNormalizedPayload(parsed);
+        // messageType은 표준 메시지 분류에 필요하므로 여기서 추출합니다.
+        candidate.setMessageType(extractMessageType(parsed));
+        return candidate;
+    }
+
+    /**
+     * TSV 문자열을 Map 형태로 변환합니다.
+     * 목적: TSV를 key-value 구조로 변환해 후속 검증에 사용합니다.
+     * 이유: 최소 규칙으로도 정규화 가능해야 Unknown Ingest를 줄일 수 있습니다.
+     */
+    private Map<String, Object> parseTsv(String payload) {
+        if (payload == null || payload.trim().isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        String[] lines = payload.split("\\r?\\n");
+        if (lines.length == 0) {
+            return Collections.emptyMap();
+        }
+
+        // 첫 줄이 key=value 형태라면 이를 우선 처리합니다.
+        if (lines[0].contains("=")) {
+            return parseKeyValueLine(lines[0]);
+        }
+
+        // 기본 규칙: 1행 헤더, 2행 데이터
+        if (lines.length < 2) {
+            return Collections.emptyMap();
+        }
+
+        String[] headers = splitTsvLine(lines[0]);
+        String[] values = splitTsvLine(lines[1]);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (int i = 0; i < headers.length; i++) {
+            String key = normalizeCell(headers[i]);
+            if (key.isEmpty()) {
+                continue;
+            }
+            String value = i < values.length ? normalizeCell(values[i]) : "";
+            result.put(key, value);
+        }
+        return result;
+    }
+
+    /**
+     * key=value 목록을 Map으로 변환합니다.
+     * 목적: 장비에서 단일 라인으로 전송되는 간단 포맷을 처리합니다.
+     * 이유: 헤더/데이터 분리 없는 입력도 최소 수준으로 수용하기 위함입니다.
+     */
+    private Map<String, Object> parseKeyValueLine(String line) {
+        String[] pairs = line.split("\\t");
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (String pair : pairs) {
+            String[] parts = pair.split("=", 2);
+            if (parts.length != 2) {
+                continue;
+            }
+            String key = normalizeCell(parts[0]);
+            String value = normalizeCell(parts[1]);
+            if (!key.isEmpty()) {
+                result.put(key, value);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * TSV 한 줄을 탭으로 분리합니다.
+     * 목적: 최소 구현을 위해 단순 분리 로직을 사용합니다.
+     * 이유: 복잡한 구분자 처리기는 추후 확장 단계에서 도입합니다.
+     */
+    private String[] splitTsvLine(String line) {
+        if (line == null) {
+            return new String[0];
+        }
+        return line.split("\\t", -1);
+    }
+
+    /**
+     * 셀 문자열을 정리합니다.
+     * 목적: 공백 제거와 간단한 따옴표 제거를 수행합니다.
+     */
+    private String normalizeCell(String value) {
+        if (value == null) {
+            return "";
+        }
+        String trimmed = value.trim();
+        if (trimmed.length() >= 2) {
+            char first = trimmed.charAt(0);
+            char last = trimmed.charAt(trimmed.length() - 1);
+            if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
+                return trimmed.substring(1, trimmed.length() - 1).trim();
+            }
+        }
+        return trimmed;
+    }
+
+    /**
+     * 메시지 유형을 다양한 키 후보에서 찾아 MessageType으로 변환합니다.
+     * 목적: 입력 포맷의 키 차이를 흡수하여 분류 일관성을 높입니다.
+     */
+    private MessageType extractMessageType(Map<String, Object> payload) {
+        if (payload == null) {
+            return null;
+        }
+        Object value = payload.get("messageType");
+        if (value == null) {
+            value = payload.get("message_type");
+        }
+        if (value == null) {
+            value = payload.get("type");
+        }
+        if (value == null) {
+            return null;
+        }
+        String raw = String.valueOf(value).trim();
+        if (raw.isEmpty()) {
+            return null;
+        }
+        try {
+            return MessageType.valueOf(raw.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+}
