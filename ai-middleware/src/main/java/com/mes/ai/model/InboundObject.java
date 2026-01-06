@@ -17,6 +17,8 @@ public class InboundObject {
     private long sizeBytes;
     /** 원본 위치(파일 경로 또는 메모리 핸들)입니다. */
     private String payloadRef;
+    /** 원본 본문(Base64 인코딩)입니다. */
+    private String payloadBase64;
     /** 원본 해시 값(무결성 확인용)입니다. */
     private String payloadHash;
 
@@ -66,5 +68,13 @@ public class InboundObject {
 
     public void setPayloadHash(String payloadHash) {
         this.payloadHash = payloadHash;
+    }
+
+    public String getPayloadBase64() {
+        return payloadBase64;
+    }
+
+    public void setPayloadBase64(String payloadBase64) {
+        this.payloadBase64 = payloadBase64;
     }
 }
