@@ -83,6 +83,24 @@ public class PipelineOrchestrator {
      * 이유: 원본은 항상 보관해야 하며, 실패 사유는 추적 가능해야 합니다.
      */
     public void process(RawEnvelope rawEnvelope) {
+        processInternal(rawEnvelope, false);
+    }
+
+    /**
+     * 보안 스캔이 이미 완료된 데이터 처리용 경로입니다.
+     * 목적: 스캔 결과가 확정된 이후에는 중복 스캔을 피합니다.
+     * 이유: 큐 기반 스캔 구조에서 병목과 중복 처리를 줄이기 위함입니다.
+     */
+    public void processAfterScan(RawEnvelope rawEnvelope) {
+        processInternal(rawEnvelope, true);
+    }
+
+    /**
+     * 공통 처리 로직입니다.
+     * 목적: 스캔 여부에 따라 공통 흐름을 재사용합니다.
+     * 이유: 중복 코드를 줄이고 유지보수를 쉽게 하기 위함입니다.
+     */
+    private void processInternal(RawEnvelope rawEnvelope, boolean skipScan) {
         if (rawEnvelope == null) {
             // 원본 자체가 없으면 즉시 격리하여 후속 오류를 막습니다.
             quarantineService.quarantine(null, failResult("INGRESS_PAYLOAD_EMPTY:원본 데이터가 없습니다."));
@@ -97,12 +115,15 @@ public class PipelineOrchestrator {
             return;
         }
 
-        // 보안 스캔은 파싱/정규화 전에 반드시 수행하여 악성 데이터를 차단합니다.
-        ScanResult scanResult = securityScanService.scan(buildScanRequest(rawEnvelope));
-        if (isScanBlocked(scanResult)) {
-            // 스캔 실패/감염 상태는 Unknown Ingest로 격리 저장합니다.
-            unknownIngestService.save(buildUnknownRecord(rawEnvelope, scanResult, "SECURITY_SCAN_BLOCKED"));
-            return;
+        ScanResult scanResult = null;
+        if (!skipScan) {
+            // 보안 스캔은 파싱/정규화 전에 반드시 수행하여 악성 데이터를 차단합니다.
+            scanResult = securityScanService.scan(buildScanRequest(rawEnvelope));
+            if (isScanBlocked(scanResult)) {
+                // 스캔 실패/감염 상태는 Unknown Ingest로 격리 저장합니다.
+                unknownIngestService.save(buildUnknownRecord(rawEnvelope, scanResult, "SECURITY_SCAN_BLOCKED"));
+                return;
+            }
         }
 
         // 미정의 통신/비정형 데이터로 판단되면 파이프라인에 진입시키지 않습니다.

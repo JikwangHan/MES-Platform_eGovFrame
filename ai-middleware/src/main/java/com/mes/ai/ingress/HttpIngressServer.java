@@ -29,6 +29,7 @@ public class HttpIngressServer {
 
     private final HttpServer server;
     private final PipelineOrchestrator orchestrator;
+    private final com.mes.ai.service.impl.QueueBasedScanCoordinator scanCoordinator;
 
     /**
      * 목적: 포트와 오케스트레이터를 주입받아 서버를 초기화합니다.
@@ -44,6 +45,28 @@ public class HttpIngressServer {
      */
     public HttpIngressServer(int port, String path, PipelineOrchestrator orchestrator) {
         this.orchestrator = orchestrator;
+        this.scanCoordinator = null;
+        try {
+            this.server = HttpServer.create(new InetSocketAddress(port), 0);
+        } catch (IOException ex) {
+            throw new IllegalStateException("HTTP 서버 생성에 실패했습니다.", ex);
+        }
+        String normalizedPath = (path == null || path.trim().isEmpty()) ? DEFAULT_PATH : path.trim();
+        this.server.createContext(normalizedPath, new IngestHandler());
+    }
+
+    /**
+     * 목적: 큐 기반 스캔 구조를 사용하는 서버를 초기화합니다.
+     * 이유: 스캔을 비동기로 분리해 Ingest 병목을 줄이기 위함입니다.
+     */
+    public HttpIngressServer(
+            int port,
+            String path,
+            PipelineOrchestrator orchestrator,
+            com.mes.ai.service.impl.QueueBasedScanCoordinator scanCoordinator
+    ) {
+        this.orchestrator = orchestrator;
+        this.scanCoordinator = scanCoordinator;
         try {
             this.server = HttpServer.create(new InetSocketAddress(port), 0);
         } catch (IOException ex) {
@@ -92,7 +115,11 @@ public class HttpIngressServer {
             String payload = readBody(exchange.getRequestBody());
             HttpIngressHandler handler = new HttpIngressHandler(sourceId, contentType);
             RawEnvelope rawEnvelope = handler.receive(payload);
-            orchestrator.process(rawEnvelope);
+            if (scanCoordinator != null) {
+                scanCoordinator.enqueue(rawEnvelope);
+            } else if (orchestrator != null) {
+                orchestrator.process(rawEnvelope);
+            }
             sendResponse(exchange, 202, "ACCEPTED");
         }
 
