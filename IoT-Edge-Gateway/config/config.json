@@ -1,0 +1,22 @@
+{
+  "gateway_id": "EDGE-GATEWAY-001",
+  "device_name": "LINE-1-MACHINE-A",
+  "modbus": {
+    "address": "127.0.0.1:502",
+    "slave_id": 1,
+    "timeout": 5,
+    "sensors": [
+      { "name": "Temperature", "address": 0 },
+      { "name": "Humidity", "address": 1 },
+      { "name": "Pressure", "address": 2 }
+    ]
+  },
+  "mqtt": {
+    "broker": "tcp://localhost:1883",
+    "topic": "mes/telemetry",
+    "client_id": "edge_gw_01"
+  },
+  "ports": {
+    "health_check": 18080
+  }
+}

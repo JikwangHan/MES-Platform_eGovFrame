@@ -1,0 +1,44 @@
+protocolVersion: "1.0"
+schemaVersion: "1.0"
+deviceId: "EDGE-DEVICE-001"
+
+modbus:
+  type: tcp          # tcp | rtu
+  host: 127.0.0.1
+  port: 502
+  slaveId: 1
+  timeoutMs: 3000
+  addressBase: "0-based" # 또는 "1-based" (장비 정의서 확인)
+  # RTU 사용 시 예시:
+  # serialPort: "COM3"
+  # baudRate: 9600
+  # dataBits: 8
+  # parity: N
+  # stopBits: 1
+
+tags:
+  - { name: RUN,  address: 0, count: 1, description: "설비 운전 상태" }
+  - { name: QTY,  address: 1, count: 1, description: "누적 생산 수량" }
+  - { name: TEMP, address: 2, count: 1, description: "온도 Raw" }
+
+mqtt:
+  enabled: true
+  broker: 127.0.0.1
+  port: 1883
+  topic: mes/edge/telemetry
+  username: ""
+  password: ""
+  clientId: edge-gateway-poc
+  cleanSession: true
+  qos: 0
+
+rest:
+  enabled: false
+  endpoint: "http://127.0.0.1:18080/api/edge/telemetry"
+  authToken: ""
+  timeoutMs: 5000
+
+paths:
+  logs: "IoT-Edge-Gateway/logs"
+  quarantine: "IoT-Edge-Gateway/quarantine"
+
