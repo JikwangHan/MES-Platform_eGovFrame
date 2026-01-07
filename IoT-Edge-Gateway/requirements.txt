@@ -1,0 +1,9 @@
+#
+# IoT-Edge-Gateway PoC 의존성 목록
+# - 이 파일은 MES-Platform/ai-middleware 와는 독립적으로, Edge Gateway PoC용 Python 패키지를 정의합니다.
+#
+pyserial>=3.5
+pymodbus>=3.6.0
+paho-mqtt>=2.1.0
+requests>=2.31.0
+
