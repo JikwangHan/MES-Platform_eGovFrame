@@ -11,6 +11,7 @@ import com.mes.ai.util.TimeUtils;
  * 목적: MQTT로 수신한 원본 payload를 RawEnvelope로 변환합니다.
  * 기능: 수신 시각, ingress 유형, 해시, Base64 원본을 생성합니다.
  * 이유: 원본 보존과 추적성을 확보하기 위함입니다.
+ * 유지보수: 수신 메타데이터 확장 시 이 클래스에서 반영합니다.
  */
 public class MqttIngressHandler implements IngressHandler {
     /** 장비/게이트웨이 식별자(해시 생성용)입니다. */
@@ -21,6 +22,9 @@ public class MqttIngressHandler implements IngressHandler {
     /**
      * 기본 contentType은 JSON으로 설정합니다.
      * 목적: 가장 보편적인 포맷을 기본값으로 제공합니다.
+     * 기능: contentType을 application/json으로 설정합니다.
+     * 이유: 대다수 장비가 JSON을 사용하기 때문입니다.
+     * 유지보수: 기본 포맷 변경 시 여기에서 수정합니다.
      */
     public MqttIngressHandler(String sourceId) {
         this(sourceId, "application/json");
@@ -29,12 +33,21 @@ public class MqttIngressHandler implements IngressHandler {
     /**
      * 수신 소스와 contentType을 명시적으로 설정합니다.
      * 목적: 다양한 장비 포맷을 유연하게 수용합니다.
+     * 기능: sourceId/contentType을 내부에 저장합니다.
+     * 이유: 포맷 별 처리를 정확히 분기하기 위함입니다.
+     * 유지보수: 추가 메타데이터가 필요하면 생성자를 확장합니다.
      */
     public MqttIngressHandler(String sourceId, String contentType) {
         this.sourceId = sourceId;
         this.contentType = contentType;
     }
 
+    /**
+     * 목적: 수신 문자열을 RawEnvelope로 변환합니다.
+     * 기능: 수신 시각/경로/해시/원본(Base64)을 설정합니다.
+     * 이유: 원본 보관 정책과 무결성 추적을 만족하기 위함입니다.
+     * 유지보수: 신규 메타데이터 추가 시 RawEnvelope와 함께 확장합니다.
+     */
     @Override
     public RawEnvelope receive(String payload) {
         // payload가 null이면 원본 보관을 위해 빈 문자열로 치환합니다.

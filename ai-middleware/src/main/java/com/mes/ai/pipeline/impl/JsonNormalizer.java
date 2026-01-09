@@ -17,10 +17,17 @@ import java.util.Map;
  * 목적: 다양한 입력 중 JSON을 표준 Map 형태로 변환합니다.
  * 기능: Base64 원본을 복원하고 JSON 파싱을 수행합니다.
  * 이유: 후속 단계에서 공통 키/값 구조로 처리하기 위함입니다.
+ * 유지보수: JSON 파서 설정 변경 시 이 클래스에서 조정합니다.
  */
 public class JsonNormalizer implements Normalizer {
     private static final ObjectMapper OBJECT_MAPPER = JacksonUtils.getObjectMapper();
 
+    /**
+     * 목적: JSON payload를 표준 Map 구조로 변환합니다.
+     * 기능: Base64 복원 후 JSON 파싱과 messageType 추출을 수행합니다.
+     * 이유: 분류/검증 단계가 동일한 구조를 요구하기 때문입니다.
+     * 유지보수: 파싱 실패 처리 정책 변경 시 이 메서드를 수정합니다.
+     */
     @Override
     public EnvelopeCandidate normalize(RawEnvelope rawEnvelope) {
         // 후보 객체는 항상 생성해 반환하여 다음 단계와의 계약을 지킵니다.
@@ -51,6 +58,9 @@ public class JsonNormalizer implements Normalizer {
     /**
      * 메시지 유형을 다양한 키 후보에서 찾아 MessageType으로 변환합니다.
      * 목적: 입력 포맷의 키 차이를 흡수하여 분류 일관성을 높입니다.
+     * 기능: 후보 키를 순차 조회해 MessageType으로 변환합니다.
+     * 이유: 다양한 제조장비가 서로 다른 키 이름을 사용하기 때문입니다.
+     * 유지보수: 새 키가 추가되면 여기에서 별칭을 늘립니다.
      */
     private MessageType extractMessageType(Map<String, Object> payload) {
         // 우선 순위에 따라 대표 키를 순차적으로 확인합니다.

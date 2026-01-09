@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
  * 목적: 수신 데이터의 악성코드를 탐지해 파이프라인을 보호합니다.
  * 기능: clamscan 명령을 호출해 파일을 검사하고 결과를 반환합니다.
  * 이유: 온프레미스 환경에서 가볍게 적용할 수 있는 스캔 엔진을 제공하기 위함입니다.
+ * 유지보수: 실행 명령/옵션 변경 시 이 클래스에서 조정합니다.
  */
 public class ClamAvSecurityScanService implements SecurityScanService {
     /** 기본 스캔 명령입니다. */
@@ -25,6 +26,12 @@ public class ClamAvSecurityScanService implements SecurityScanService {
     /** 기본 타임아웃(밀리초)입니다. */
     private static final long DEFAULT_TIMEOUT_MS = 10000L;
 
+    /**
+     * 목적: ClamAV를 이용해 스캔을 수행합니다.
+     * 기능: payload를 파일로 저장 후 clamscan을 실행하고 결과를 반환합니다.
+     * 이유: clamscan은 파일 경로 기반으로 동작하기 때문입니다.
+     * 유지보수: 스캔 옵션/타임아웃 정책 변경 시 이 메서드를 수정합니다.
+     */
     @Override
     public ScanResult scan(ScanRequest request) {
         ScanResult result = new ScanResult();
@@ -105,7 +112,9 @@ public class ClamAvSecurityScanService implements SecurityScanService {
 
     /**
      * 목적: 스캔 결과에 공통 정보를 기록합니다.
-     * 이유: 소요 시간 등 운영 지표를 일관되게 관리하기 위함입니다.
+     * 기능: 소요 시간을 계산해 결과에 저장합니다.
+     * 이유: 운영 지표를 일관되게 관리하기 위함입니다.
+     * 유지보수: 추가 메트릭 저장 시 이 메서드를 확장합니다.
      */
     private ScanResult finish(ScanResult result, long start) {
         result.setDurationMs(System.currentTimeMillis() - start);
@@ -114,7 +123,9 @@ public class ClamAvSecurityScanService implements SecurityScanService {
 
     /**
      * 목적: clamscan 출력에서 시그니처를 추출합니다.
+     * 기능: " FOUND" 구문을 기반으로 시그니처 문자열을 파싱합니다.
      * 이유: 감염 근거를 기록하기 위함입니다.
+     * 유지보수: 출력 포맷 변경 시 파싱 규칙을 수정합니다.
      */
     private String extractSignature(String output) {
         if (output == null) {
@@ -134,7 +145,9 @@ public class ClamAvSecurityScanService implements SecurityScanService {
 
     /**
      * 목적: 프로세스 출력을 안전하게 읽습니다.
+     * 기능: 표준 출력 내용을 문자열로 반환합니다.
      * 이유: 오류 메시지를 결과에 담아 운영 분석에 활용합니다.
+     * 유지보수: 인코딩/스트림 처리 변경 시 이 메서드를 수정합니다.
      */
     private String readOutput(Process process) {
         try (BufferedReader reader = new BufferedReader(
@@ -153,7 +166,9 @@ public class ClamAvSecurityScanService implements SecurityScanService {
 
     /**
      * 목적: 숫자 문자열을 안전하게 파싱합니다.
+     * 기능: 파싱 실패 시 기본값을 반환합니다.
      * 이유: 잘못된 설정 값이 있어도 기본값으로 복구하기 위함입니다.
+     * 유지보수: 숫자 범위 정책 변경 시 이 메서드를 수정합니다.
      */
     private long parseLong(String value, long fallback) {
         if (value == null || value.trim().isEmpty()) {
@@ -168,7 +183,9 @@ public class ClamAvSecurityScanService implements SecurityScanService {
 
     /**
      * 목적: 경로 입력을 정리합니다.
+     * 기능: null/공백을 정리해 유효한 경로만 반환합니다.
      * 이유: 공백/널 처리로 예외를 줄이기 위함입니다.
+     * 유지보수: 경로 규칙 변경 시 이 메서드를 수정합니다.
      */
     private String normalizePath(String path) {
         if (path == null) {

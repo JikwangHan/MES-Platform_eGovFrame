@@ -11,6 +11,7 @@ import java.sql.SQLException;
  * 목적: DB에 저장된 JSON Schema를 조회하여 검증 단계에 제공합니다.
  * 기능: schemaVersion/messageType/deviceTypeId 기준으로 스키마 본문을 반환합니다.
  * 이유: 운영 환경에서 스키마를 코드 수정 없이 관리하기 위함입니다.
+ * 유지보수: 테이블/컬럼 구조 변경 시 SQL과 매핑을 이 클래스에서 수정합니다.
  */
 public class JdbcSchemaRegistry implements SchemaRegistry {
     /**
@@ -42,6 +43,12 @@ public class JdbcSchemaRegistry implements SchemaRegistry {
         this.dataSource = dataSource;
     }
 
+    /**
+     * 목적: 스키마 키로 스키마 본문을 조회합니다.
+     * 기능: 장비별 스키마 → 공용 스키마 순으로 조회합니다.
+     * 이유: 장비별 정의가 없을 때도 기본 검증을 수행하기 위함입니다.
+     * 유지보수: 조회 순서/정책이 바뀌면 이 메서드를 수정합니다.
+     */
     @Override
     public String findSchema(SchemaKey key) {
         if (key == null) {

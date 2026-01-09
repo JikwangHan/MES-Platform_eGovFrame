@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
  * 기능: required/properties/type 규칙만 지원합니다.
  * 이유: 초기 단계에서 스키마 검증 흐름을 확보하기 위함입니다.
  * 제한: 복잡한 스키마(참조/조건/배열 상세 등)는 지원하지 않습니다.
+ * 유지보수: 지원 규칙 확대 시 이 클래스에 검증 로직을 추가합니다.
  */
 public class SimpleJsonSchemaValidator implements SchemaValidator {
     private static final Pattern REQUIRED_SECTION = Pattern.compile("\"required\"\\s*:\\s*\\[(.*?)\\]");
@@ -20,6 +21,12 @@ public class SimpleJsonSchemaValidator implements SchemaValidator {
     private static final Pattern PROPERTY_ENTRY = Pattern.compile("\"(.*?)\"\\s*:\\s*\\{(.*?)\\}");
     private static final Pattern TYPE_FIELD = Pattern.compile("\"type\"\\s*:\\s*\"(.*?)\"");
 
+    /**
+     * 목적: JSON payload가 최소 스키마 규칙을 만족하는지 검증합니다.
+     * 기능: required/type 규칙을 순회하며 위반을 즉시 반환합니다.
+     * 이유: 기본적인 필드 누락/타입 오류를 초기에 차단하기 위함입니다.
+     * 유지보수: 규칙 확장 시 이 메서드 흐름을 보강합니다.
+     */
     @Override
     public SchemaValidationResult validate(Map<String, Object> payload, String schemaJson) {
         if (schemaJson == null || schemaJson.trim().isEmpty()) {

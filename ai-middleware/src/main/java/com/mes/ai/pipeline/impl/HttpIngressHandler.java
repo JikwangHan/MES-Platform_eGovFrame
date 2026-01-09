@@ -11,6 +11,7 @@ import com.mes.ai.util.TimeUtils;
  * 목적: HTTP로 수신한 원본 payload를 RawEnvelope로 변환합니다.
  * 기능: 수신 시각, ingress 유형, 해시, Base64 원본을 생성합니다.
  * 이유: 원본 보존과 추적성을 확보하기 위함입니다.
+ * 유지보수: 헤더/테넌트 식별 규칙이 변경되면 이 클래스에 반영합니다.
  */
 public class HttpIngressHandler implements IngressHandler {
     /** 장비/게이트웨이 식별자(해시 생성용)입니다. */
@@ -27,6 +28,12 @@ public class HttpIngressHandler implements IngressHandler {
         this.contentType = contentType;
     }
 
+    /**
+     * 목적: 수신 문자열을 RawEnvelope로 변환합니다.
+     * 기능: 수신 시각/경로/해시/원본(Base64)을 설정합니다.
+     * 이유: 원본 보관 정책과 무결성 추적을 만족하기 위함입니다.
+     * 유지보수: 신규 메타데이터 추가 시 RawEnvelope 필드 확장과 함께 수정합니다.
+     */
     @Override
     public RawEnvelope receive(String payload) {
         // payload가 null이면 원본 보관을 위해 빈 문자열로 치환합니다.

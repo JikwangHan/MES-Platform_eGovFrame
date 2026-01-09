@@ -14,18 +14,27 @@ import com.mes.ai.service.SecurityScanService;
  * 목적: 기존 스캔 구현체를 새 인터페이스와 호환되게 만듭니다.
  * 기능: ScanStatus를 AntiVirusVerdict로 변환합니다.
  * 이유: 코드 변경을 최소화하면서 설계안을 반영하기 위함입니다.
+ * 유지보수: 스캔 결과 매핑 규칙 변경 시 이 클래스에서 조정합니다.
  */
 public class AntiVirusScanSecurityAdapter implements AntiVirusScanService {
     private final SecurityScanService securityScanService;
 
     /**
      * 목적: 기존 스캔 서비스 구현체를 주입받습니다.
+     * 기능: SecurityScanService를 내부 필드에 저장합니다.
      * 이유: 운영 환경에서 실제 엔진 구현체를 그대로 재사용하기 위함입니다.
+     * 유지보수: 스캔 서비스 교체 시 생성자에서 주입만 변경합니다.
      */
     public AntiVirusScanSecurityAdapter(SecurityScanService securityScanService) {
         this.securityScanService = securityScanService;
     }
 
+    /**
+     * 목적: 인바운드 객체를 스캔하고 결과를 표준화합니다.
+     * 기능: ScanRequest로 변환 후 스캔을 실행하고 결과를 매핑합니다.
+     * 이유: 파이프라인이 AntiVirusScanResult 기준으로 동작하기 때문입니다.
+     * 유지보수: 스캔 입력/출력 규칙 변경 시 이 메서드를 수정합니다.
+     */
     @Override
     public AntiVirusScanResult scan(InboundObject inboundObject) {
         ScanRequest request = buildRequest(inboundObject);
@@ -35,7 +44,9 @@ public class AntiVirusScanSecurityAdapter implements AntiVirusScanService {
 
     /**
      * 목적: 인바운드 객체를 스캔 요청으로 변환합니다.
+     * 기능: payload/base64/hash/contentType을 ScanRequest에 설정합니다.
      * 이유: 기존 스캔 서비스와 입력 포맷을 맞추기 위함입니다.
+     * 유지보수: 스캔 입력 필드가 늘어나면 이 메서드를 수정합니다.
      */
     private ScanRequest buildRequest(InboundObject inboundObject) {
         ScanRequest request = new ScanRequest();
@@ -50,7 +61,9 @@ public class AntiVirusScanSecurityAdapter implements AntiVirusScanService {
 
     /**
      * 목적: 기존 스캔 결과를 표준 결과로 변환합니다.
+     * 기능: ScanStatus를 AntiVirusVerdict로 매핑합니다.
      * 이유: OK/FOUND/ERROR 기준을 일관되게 적용하기 위함입니다.
+     * 유지보수: 상태 매핑 규칙 변경 시 이 메서드를 수정합니다.
      */
     private AntiVirusScanResult mapResult(ScanResult scanResult) {
         AntiVirusScanResult result = new AntiVirusScanResult();
