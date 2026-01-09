@@ -8,12 +8,15 @@ import com.mes.ai.model.ScanResult;
  * 목적: 스캔 엔진 교체에도 호출부는 유지되게 합니다.
  * 기능: 원본 데이터에 대한 악성코드 스캔을 수행합니다.
  * 이유: 보안 정책을 일관되게 적용하기 위함입니다.
+ * 유지보수: 엔진 교체 시 구현체만 수정합니다.
  */
 public interface SecurityScanService {
     /**
      * 보안 스캔을 수행합니다.
      * 목적: 파싱/저장 전에 악성코드 여부를 확인합니다.
      * 이유: 감염 데이터의 유입을 차단하기 위함입니다.
+     * 기능: ScanRequest를 받아 ScanResult를 반환합니다.
+     * 유지보수: 스캔 입력/출력 구조가 바뀌면 구현체를 수정합니다.
      */
     ScanResult scan(ScanRequest request);
 }

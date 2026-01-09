@@ -1,0 +1,28 @@
+# AI Middleware 스모크 테스트 증빙
+
+## 목적
+- HTTP 수신 경로 기동과 요청 처리(health 성격의 호출)를 확인합니다.
+- 파이프라인 저장/격리 흐름이 정상 동작하는지 확인합니다.
+
+## 실행 절차(복붙용)
+1) 컴파일(빌드)
+```powershell
+mvn -f ai-middleware/pom.xml -DskipTests compile
+```
+
+2) 클래스패스 생성
+```powershell
+mvn -f ai-middleware/pom.xml -DincludeScope=runtime dependency:build-classpath "-Dmdep.outputFile=target/classpath.txt"
+```
+
+3) HTTP Ingress 스모크 테스트(기동 + 호출)
+```powershell
+$deps = Get-Content -Raw ai-middleware/target/classpath.txt
+$cp = "ai-middleware/target/classes;$deps"
+java "-Dfile.encoding=UTF-8" "-Dai.security.scan.mockClean=true" -cp $cp com.mes.ai.tools.HttpIngressSmokeRunner
+```
+
+## 결과(PASS 근거)
+- 응답 코드: 202
+- 표준 저장 건수: 1
+- Unknown Ingest 건수: 0

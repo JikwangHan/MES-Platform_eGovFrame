@@ -11,8 +11,15 @@ import java.util.Map;
  * 목적: 장비 유형을 빠르게 식별해 후속 검증 규칙을 적용합니다.
  * 기능: payload에서 deviceTypeId를 찾아 ClassificationResult를 생성합니다.
  * 이유: 초기 단계에서는 간단한 규칙 기반 분류가 유지보수에 유리합니다.
+ * 유지보수: 분류 기준이 늘어나면 이 클래스에서 규칙을 확장합니다.
  */
 public class BasicClassifier implements Classifier {
+    /**
+     * 목적: 정규화 후보 데이터를 최소 규칙으로 분류합니다.
+     * 기능: deviceTypeId를 찾아 신뢰도와 함께 반환합니다.
+     * 이유: 장비 유형이 정해져야 검증/스키마 매칭을 수행할 수 있기 때문입니다.
+     * 유지보수: 정확도 향상이 필요하면 규칙/모델을 이 메서드에서 교체합니다.
+     */
     @Override
     public ClassificationResult classify(EnvelopeCandidate candidate) {
         // 결과 객체를 먼저 생성해 항상 반환합니다.

@@ -1,6 +1,7 @@
 package com.mes.ai.service.impl;
 
 import com.mes.ai.model.RawEnvelope;
+import com.mes.ai.model.ScanResult;
 import com.mes.ai.model.ValidationResult;
 import com.mes.ai.service.QuarantineService;
 
@@ -14,6 +15,7 @@ import java.sql.SQLException;
  * 목적: 격리 데이터 DB 저장 로직의 확장 지점을 제공합니다.
  * 기능: 격리 저장 메서드 시그니처를 고정합니다.
  * 이유: 격리 저장 구현을 추후 교체해도 호출부를 유지합니다.
+ * 유지보수: 테이블 구조 변경 시 SQL과 매핑을 이 클래스에서 수정합니다.
  */
 public class JdbcQuarantineService implements QuarantineService {
     private static final String INSERT_QUARANTINE_SQL =
@@ -29,15 +31,24 @@ public class JdbcQuarantineService implements QuarantineService {
 
     /**
      * 목적: DataSource를 주입받아 격리 저장을 수행합니다.
+     * 기능: DataSource를 내부 필드에 저장합니다.
      * 이유: 연결 설정을 외부로 분리해 유지보수를 쉽게 합니다.
+     * 유지보수: 멀티테넌트 분리 시 DataSource 교체로 대응합니다.
      */
     public JdbcQuarantineService(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
+    /**
+     * 목적: 격리 데이터를 DB에 저장합니다.
+     * 기능: 원본 ID와 사유 코드를 quarantine_data 테이블에 기록합니다.
+     * 이유: 검증 실패 데이터의 추적과 재처리를 위해 필요합니다.
+     * 유지보수: 사유 컬럼 구조 변경 시 splitReason/SQL을 수정합니다.
+     */
     @Override
-    public void quarantine(RawEnvelope rawEnvelope, ValidationResult validationResult) {
+    public void quarantine(RawEnvelope rawEnvelope, ValidationResult validationResult, ScanResult scanResult) {
         // 실제 환경에서는 quarantine_data 테이블에 저장합니다.
+        // 보안 스캔 결과는 스키마 확정 후 별도 컬럼에 저장할 수 있도록 확장 지점으로 둡니다.
         if (rawEnvelope == null) {
             return;
         }
@@ -66,7 +77,9 @@ public class JdbcQuarantineService implements QuarantineService {
 
     /**
      * 목적: reason을 코드/상세로 분리합니다.
+     * 기능: 콜론 구분 규칙으로 reasonCode/reasonDetail을 생성합니다.
      * 이유: DB 컬럼 구조에 맞게 저장하기 위함입니다.
+     * 유지보수: 사유 포맷 변경 시 이 메서드를 수정합니다.
      */
     private ReasonParts splitReason(String reason) {
         if (reason == null || reason.trim().isEmpty()) {
@@ -83,7 +96,9 @@ public class JdbcQuarantineService implements QuarantineService {
 
     /**
      * 목적: reason 분리 결과를 보관하는 내부 클래스입니다.
+     * 기능: reasonCode와 reasonDetail을 묶어 전달합니다.
      * 이유: 코드와 상세를 명확히 구분하기 위함입니다.
+     * 유지보수: 사유 구조 변경 시 필드를 확장합니다.
      */
     private static final class ReasonParts {
         private final String reasonCode;
@@ -97,7 +112,9 @@ public class JdbcQuarantineService implements QuarantineService {
 
     /**
      * 목적: 재시도 횟수를 시스템 속성으로 제어합니다.
+     * 기능: 시스템 속성 값을 읽어 재시도 횟수를 계산합니다.
      * 이유: 운영 환경에서 장애 대응 정책을 유연하게 적용합니다.
+     * 유지보수: 정책 키 변경 시 이 메서드를 수정합니다.
      */
     private int resolveRetryCount() {
         String raw = System.getProperty("ai.jdbc.retry.count");
@@ -114,7 +131,9 @@ public class JdbcQuarantineService implements QuarantineService {
 
     /**
      * 목적: 재시도 간격을 둡니다.
+     * 기능: 시도 횟수에 비례한 지연을 부여합니다.
      * 이유: 일시적 DB 오류를 완화하기 위함입니다.
+     * 유지보수: 지연 정책 변경 시 상수/로직을 수정합니다.
      */
     private void sleepRetry(int attempt) {
         long delay = DEFAULT_RETRY_DELAY_MS * attempt;

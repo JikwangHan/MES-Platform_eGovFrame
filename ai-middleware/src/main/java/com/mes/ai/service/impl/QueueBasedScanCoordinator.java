@@ -10,13 +10,16 @@ import com.mes.ai.service.AntiVirusScanQueue;
  * 목적: 수신 데이터 -> 스캔 큐 적재 흐름을 표준화합니다.
  * 기능: RawEnvelope를 InboundObject로 변환해 큐에 적재합니다.
  * 이유: 수신 처리와 스캔 처리를 분리해 병목을 줄이기 위함입니다.
+ * 유지보수: 큐/스캔 입력 규격 변경 시 이 클래스에서 조정합니다.
  */
 public class QueueBasedScanCoordinator {
     private final AntiVirusScanQueue scanQueue;
 
     /**
      * 목적: 스캔 큐 구현체를 주입받습니다.
+     * 기능: 큐 구현체를 내부 필드에 저장합니다.
      * 이유: 실제 브로커/메모리 구현을 쉽게 교체하기 위함입니다.
+     * 유지보수: 큐 확장 옵션이 필요하면 생성자를 확장합니다.
      */
     public QueueBasedScanCoordinator(AntiVirusScanQueue scanQueue) {
         this.scanQueue = scanQueue;
@@ -24,7 +27,9 @@ public class QueueBasedScanCoordinator {
 
     /**
      * 목적: 원본 데이터를 큐에 적재합니다.
+     * 기능: RawEnvelope를 InboundObject로 변환해 큐에 넣습니다.
      * 이유: 스캔 워커가 비동기로 처리하도록 분리하기 위함입니다.
+     * 유지보수: 스캔 큐 적재 정책 변경 시 이 메서드를 수정합니다.
      */
     public void enqueue(RawEnvelope rawEnvelope) {
         if (rawEnvelope == null) {
@@ -39,7 +44,9 @@ public class QueueBasedScanCoordinator {
 
     /**
      * 목적: RawEnvelope를 InboundObject로 변환합니다.
+     * 기능: 스캔에 필요한 식별/크기/해시 정보를 채웁니다.
      * 이유: 스캔 서비스 입력을 표준화하기 위함입니다.
+     * 유지보수: 스캔 입력 필드 확장 시 이 메서드를 수정합니다.
      */
     private InboundObject toInbound(RawEnvelope rawEnvelope) {
         InboundObject inbound = new InboundObject();
