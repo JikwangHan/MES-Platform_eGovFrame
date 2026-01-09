@@ -42,6 +42,12 @@ public class MqttIngressClient {
     public void start() {
         connection.connect();
         connection.subscribe(new MqttMessageHandler() {
+            /**
+             * 목적: MQTT 수신 메시지를 파이프라인으로 전달합니다.
+             * 기능: payload를 RawEnvelope로 변환해 오케스트레이터에 넘깁니다.
+             * 이유: 수신 이벤트를 표준 처리 흐름으로 연결하기 위함입니다.
+             * 유지보수: 토픽/메타데이터 처리 규칙이 바뀌면 이 로직을 확장합니다.
+             */
             @Override
             public void onMessage(String topic, String payload) {
                 // 수신 payload를 RawEnvelope로 변환 후 파이프라인에 전달합니다.

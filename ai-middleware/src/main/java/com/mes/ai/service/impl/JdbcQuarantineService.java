@@ -104,6 +104,12 @@ public class JdbcQuarantineService implements QuarantineService {
         private final String reasonCode;
         private final String reasonDetail;
 
+        /**
+         * 목적: 분리된 사유 코드를 보관하는 객체를 생성합니다.
+         * 기능: reasonCode/reasonDetail을 내부 필드에 설정합니다.
+         * 이유: 격리 저장 시 사유를 구조화해 전달하기 위함입니다.
+         * 유지보수: 사유 포맷 확장 시 파라미터를 추가합니다.
+         */
         private ReasonParts(String reasonCode, String reasonDetail) {
             this.reasonCode = reasonCode;
             this.reasonDetail = reasonDetail;

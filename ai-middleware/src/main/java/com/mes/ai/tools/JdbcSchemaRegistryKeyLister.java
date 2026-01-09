@@ -123,6 +123,12 @@ public class JdbcSchemaRegistryKeyLister {
         private final String user;
         private final String password;
 
+        /**
+         * 목적: 최소 구성 DataSource를 생성합니다.
+         * 기능: URL/계정 정보를 내부 필드에 저장합니다.
+         * 이유: 외부 의존 없이 테스트용 연결 정보를 전달하기 위함입니다.
+         * 유지보수: 인증 방식이 확장되면 파라미터를 추가합니다.
+         */
         private SimpleDataSource(String url, String user, String password) {
             this.url = url;
             this.user = user;
