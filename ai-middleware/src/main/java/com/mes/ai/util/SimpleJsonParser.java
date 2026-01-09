@@ -8,10 +8,14 @@ import java.util.Map;
  * 목적: 의존성 없이 JSON을 해석할 수 있게 합니다.
  * 기능: 최상위 평면 객체의 키/값을 Map으로 변환합니다.
  * 이유: 초기 단계에서 빠르게 포맷 검증을 수행하기 위함입니다.
- * 제한: 중첩 객체/배열은 문자열 형태로 유지됩니다.
+ * 유지보수: 구조 변경 시 이 클래스에서 조정합니다.
  */
 public final class SimpleJsonParser {
-    /** 유틸리티 클래스이므로 외부에서 인스턴스화하지 못하게 합니다. */
+    /**
+     * 목적: 유틸리티 클래스의 인스턴스화를 방지합니다.
+     * 기능: 외부에서 생성자를 호출할 수 없게 합니다.
+     * 이유: 모든 기능을 정적 메서드로 제공하기 위함입니다.
+     */
     private SimpleJsonParser() {
     }
 
@@ -19,6 +23,8 @@ public final class SimpleJsonParser {
      * JSON 문자열을 Map으로 파싱합니다.
      * 목적: 최상위 객체의 키/값을 추출합니다.
      * 기능: 문자열, 숫자, 불리언, null을 기본 타입으로 변환합니다.
+     * 이유: 기능 흐름을 한 곳에서 담당하기 위함입니다.
+     * 유지보수: 로직 변경 시 이 메서드를 수정합니다.
      */
     public static Map<String, Object> parseObject(String json) {
         if (json == null) {
@@ -69,6 +75,9 @@ public final class SimpleJsonParser {
     /**
      * JSON 값의 타입을 판별하여 적절한 파서를 호출합니다.
      * 목적: 문자열/숫자/불리언/null/구조를 분기 처리합니다.
+     * 기능: 필요한 처리를 수행합니다.
+     * 이유: 기능 흐름을 한 곳에서 담당하기 위함입니다.
+     * 유지보수: 로직 변경 시 이 메서드를 수정합니다.
      */
     private static ParseResult parseValue(String source, int index) {
         if (index >= source.length()) {
@@ -96,6 +105,9 @@ public final class SimpleJsonParser {
     /**
      * 숫자 값을 파싱합니다.
      * 목적: 정수/실수를 구분해 적절한 타입으로 변환합니다.
+     * 기능: 필요한 처리를 수행합니다.
+     * 이유: 기능 흐름을 한 곳에서 담당하기 위함입니다.
+     * 유지보수: 로직 변경 시 이 메서드를 수정합니다.
      */
     private static ParseResult parseNumber(String source, int index) {
         int start = index;
@@ -125,6 +137,9 @@ public final class SimpleJsonParser {
     /**
      * 중첩 객체/배열을 그대로 문자열로 반환합니다.
      * 목적: 최소 파서이므로 내부 구조는 추후 처리로 넘깁니다.
+     * 기능: 필요한 처리를 수행합니다.
+     * 이유: 기능 흐름을 한 곳에서 담당하기 위함입니다.
+     * 유지보수: 로직 변경 시 이 메서드를 수정합니다.
      */
     private static ParseResult parseRawStructure(String source, int index) {
         char open = source.charAt(index);
@@ -160,6 +175,9 @@ public final class SimpleJsonParser {
     /**
      * JSON 문자열을 파싱합니다.
      * 목적: 이스케이프 시퀀스를 해석해 실제 문자열을 복원합니다.
+     * 기능: 필요한 처리를 수행합니다.
+     * 이유: 기능 흐름을 한 곳에서 담당하기 위함입니다.
+     * 유지보수: 로직 변경 시 이 메서드를 수정합니다.
      */
     private static ParseResult parseString(String source, int index) {
         if (source.charAt(index) != '"') {
@@ -193,6 +211,8 @@ public final class SimpleJsonParser {
     /**
      * 현재 따옴표가 이스케이프인지 판단합니다.
      * 목적: 문자열 종료 지점을 정확히 찾기 위함입니다.
+     * 기능: 조건/상태 여부를 반환합니다.
+     * 이유: 로직 분기 기준을 제공하기 위함입니다.
      */
     private static boolean isEscaped(String source, int index) {
         int backslashCount = 0;
@@ -207,6 +227,9 @@ public final class SimpleJsonParser {
     /**
      * JSON 이스케이프 문자를 실제 문자로 변환합니다.
      * 목적: 파싱 결과를 사람이 읽을 수 있게 복원합니다.
+     * 기능: 필요한 처리를 수행합니다.
+     * 이유: 기능 흐름을 한 곳에서 담당하기 위함입니다.
+     * 유지보수: 로직 변경 시 이 메서드를 수정합니다.
      */
     private static char unescape(char next, String source, int index) {
         switch (next) {
@@ -238,6 +261,9 @@ public final class SimpleJsonParser {
     /**
      * 공백 문자를 건너뜁니다.
      * 목적: 다음 토큰의 시작 위치를 찾습니다.
+     * 기능: 필요한 처리를 수행합니다.
+     * 이유: 기능 흐름을 한 곳에서 담당하기 위함입니다.
+     * 유지보수: 로직 변경 시 이 메서드를 수정합니다.
      */
     private static int skipWhitespace(String source, int index) {
         int i = index;
@@ -248,18 +274,19 @@ public final class SimpleJsonParser {
     }
 
     /**
-     * 파싱 결과(값 + 다음 인덱스)를 묶는 내부 클래스입니다.
      * 목적: 파서가 다음 처리 위치를 알 수 있게 합니다.
+     * 기능: 필요한 동작을 수행합니다.
+     * 이유: 파싱 결과(값 + 다음 인덱스)를 묶는 내부 클래스입니다.
+     * 유지보수: 구조 변경 시 이 클래스에서 조정합니다.
      */
     private static final class ParseResult {
-        /** 파싱된 값입니다. */
         private final Object value;
-        /** 다음 파싱 시작 위치입니다. */
         private final int index;
 
         /**
-         * 파싱 결과를 생성합니다.
          * 목적: 값과 다음 위치를 함께 전달합니다.
+         * 기능: 필요한 동작을 수행합니다.
+         * 이유: 파싱 결과를 생성합니다.
          */
         private ParseResult(Object value, int index) {
             this.value = value;

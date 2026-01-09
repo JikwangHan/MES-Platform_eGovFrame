@@ -1,6 +1,8 @@
 package com.mes.ai.tools;
 
 import com.mes.ai.model.RawEnvelope;
+import com.mes.ai.model.ScanRequest;
+import com.mes.ai.model.ScanResult;
 import com.mes.ai.pipeline.impl.BasicClassifier;
 import com.mes.ai.pipeline.impl.BasicValidator;
 import com.mes.ai.pipeline.impl.ContentTypeNormalizer;
@@ -12,6 +14,7 @@ import com.mes.ai.service.PipelineOrchestrator;
 import com.mes.ai.service.impl.InMemoryQuarantineService;
 import com.mes.ai.service.impl.ClamAvSecurityScanService;
 import com.mes.ai.service.impl.InMemorySecurityScanService;
+import com.mes.ai.service.impl.ClamAvDaemonScanService;
 import com.mes.ai.service.impl.InMemoryStoreService;
 import com.mes.ai.service.impl.InMemoryUnknownIngestService;
 import com.mes.ai.util.Base64Utils;
@@ -22,8 +25,15 @@ import com.mes.ai.util.TimeUtils;
  * 목적: 보안 스캔/Unknown Ingest 분기와 정상 저장 흐름을 간단히 점검합니다.
  * 기능: 정상 JSON 입력과 미정의 입력을 순차 실행해 결과를 출력합니다.
  * 이유: 초보자도 단일 명령으로 흐름을 검증할 수 있게 하기 위함입니다.
+ * 유지보수: 확장/변경 시 이 클래스에서 정책을 조정합니다.
  */
 public class PipelineSmokeRunner {
+    /**
+     * 목적: main 동작을 수행합니다.
+     * 기능: 필요한 처리를 수행합니다.
+     * 이유: 기능 흐름을 한 곳에서 담당하기 위함입니다.
+     * 유지보수: 로직 변경 시 이 메서드를 수정합니다.
+     */
     public static void main(String[] args) {
         // 목적: 테스트 실행 전에 기본 서비스 구성을 준비합니다.
         // 이유: 파이프라인은 여러 단계 구현체가 필요합니다.
@@ -90,6 +100,18 @@ public class PipelineSmokeRunner {
                 "raw-binary-payload"
         );
 
+        // 목적: 필요할 때만 진단 로그를 출력합니다.
+        // 이유: 기본 출력은 간결하게 유지하고, 장애 시에만 상세 정보를 확인하기 위함입니다.
+        if (isDebugScanEnabled()) {
+            ScanResult debugScan = ((com.mes.ai.service.SecurityScanService) scanService).scan(buildScanRequest(normal));
+            System.out.println("=== 보안 스캔 진단(1건) ===");
+            System.out.println("scanStatus: " + debugScan.getStatus());
+            System.out.println("scanEngine: " + debugScan.getEngine());
+            System.out.println("scanError : " + debugScan.getError());
+            System.out.println("scanSig   : " + debugScan.getSignature());
+            System.out.println("==========================");
+        }
+
         // 목적: 두 케이스를 순차 처리합니다.
         // 이유: 정상/CSV/TSV/미정의 흐름을 한 번에 확인하기 위함입니다.
         orchestrator.process(normal);
@@ -112,15 +134,23 @@ public class PipelineSmokeRunner {
         if (!unknownService.getRecords().isEmpty()) {
             System.out.println("Unknown 사유(첫 번째): " + unknownService.getRecords().get(0).getQuarantineReason());
             System.out.println("Unknown contentType(첫 번째): " + unknownService.getRecords().get(0).getContentType());
+            // 목적: 보안 스캔 결과를 함께 출력합니다.
+            // 이유: 스캔 차단 원인을 빠르게 확인하기 위함입니다.
+            System.out.println("Unknown scanStatus(첫 번째): " + unknownService.getRecords().get(0).getScanStatus());
+            System.out.println("Unknown scanEngine(첫 번째): " + unknownService.getRecords().get(0).getScanEngine());
+            System.out.println("Unknown scanSignature(첫 번째): " + unknownService.getRecords().get(0).getScanSignature());
         }
         System.out.println("==================================");
         System.out.println("보안 스캔이 모두 차단되는 경우, -Dai.security.scan.mockClean=true 옵션을 사용하세요.");
-        System.out.println("ClamAV 사용 시: -Dai.security.scan.impl=clamav -Dai.security.scan.command=clamscan");
+        System.out.println("ClamAV 사용 시(로컬 clamscan): -Dai.security.scan.impl=clamav -Dai.security.scan.command=clamscan");
+        System.out.println("ClamAV 사용 시(daemon clamd): -Dai.security.scan.impl=clamd -Dai.security.scan.clamdHost=127.0.0.1 -Dai.security.scan.clamdPort=3310");
     }
 
     /**
      * 목적: RawEnvelope를 생성하는 공통 헬퍼입니다.
+     * 기능: 필요한 처리를 수행합니다.
      * 이유: 테스트용 입력 생성 로직을 중복 없이 재사용하기 위함입니다.
+     * 유지보수: 로직 변경 시 이 메서드를 수정합니다.
      */
     private static RawEnvelope buildRawEnvelope(String ingressType, String contentType, String payloadText) {
         RawEnvelope raw = new RawEnvelope();
@@ -132,21 +162,54 @@ public class PipelineSmokeRunner {
     }
 
     /**
+     * 목적: 스캔 요청 객체를 구성합니다.
+     * 기능: 필요한 처리를 수행합니다.
+     * 이유: 스캔 엔진 진단 출력에 필요한 입력을 맞추기 위함입니다.
+     * 유지보수: 로직 변경 시 이 메서드를 수정합니다.
+     */
+    private static ScanRequest buildScanRequest(RawEnvelope rawEnvelope) {
+        ScanRequest request = new ScanRequest();
+        if (rawEnvelope != null) {
+            request.setRawId(rawEnvelope.getId());
+            request.setPayloadBase64(rawEnvelope.getPayloadBase64());
+            request.setPayloadHash(rawEnvelope.getPayloadHash());
+            request.setContentType(rawEnvelope.getContentType());
+        }
+        return request;
+    }
+
+    /**
+     * 목적: 진단 출력 여부를 확인합니다.
+     * 기능: 조건/상태 여부를 반환합니다.
+     * 이유: 기본 모드는 조용하게, 필요 시에만 상세 로그를 출력하기 위함입니다.
+     */
+    private static boolean isDebugScanEnabled() {
+        String flag = System.getProperty("ai.security.scan.debug", "false");
+        return "true".equalsIgnoreCase(flag.trim());
+    }
+
+    /**
      * 목적: 스캔 구현체를 시스템 속성으로 선택합니다.
+     * 기능: 필요한 처리를 수행합니다.
      * 이유: 환경에 따라 보안 스캔 엔진을 유연하게 교체합니다.
+     * 유지보수: 로직 변경 시 이 메서드를 수정합니다.
      */
     private static Object createScanService() {
         String impl = System.getProperty("ai.security.scan.impl", "inmemory").trim().toLowerCase();
         if ("clamav".equals(impl)) {
             return new ClamAvSecurityScanService();
         }
+        if ("clamd".equals(impl)) {
+            return new ClamAvDaemonScanService();
+        }
         return new InMemorySecurityScanService();
     }
 
-    /**
-     * 목적: 테스트용 스키마 레지스트리를 구성합니다.
-     * 이유: 스키마 미등록 시 검증 실패하므로 기본 스키마를 제공합니다.
-     */
+        /**
+         * 목적: 테스트용 스키마 레지스트리를 구성합니다.
+         * 기능: 필요한 동작을 수행합니다.
+         * 이유: 스키마 미등록 시 검증 실패하므로 기본 스키마를 제공합니다.
+         */
     private static java.util.Map<SchemaKey, String> buildSchemaStore() {
         java.util.Map<SchemaKey, String> store = new java.util.HashMap<>();
         // 목적: 기본 TELEMETRY 스키마를 준비합니다.
