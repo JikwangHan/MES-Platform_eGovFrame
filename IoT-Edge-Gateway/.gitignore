@@ -1,0 +1,13 @@
+# 실행 파일
+*.exe
+edge-gateway
+
+# 데이터베이스 및 로그
+*.db
+*.db-journal
+logs/
+quarantine/
+
+# VS Code 설정 및 임시 파일
+.vscode/
+temp/

@@ -1,16 +1,33 @@
 {
   "gateway_id": "EDGE-GATEWAY-001",
-  "device_name": "LINE-1-MACHINE-A",
-  "modbus": {
-    "address": "127.0.0.1:502",
-    "slave_id": 1,
-    "timeout": 5,
-    "sensors": [
-      { "name": "Temperature", "address": 0 },
-      { "name": "Humidity", "address": 1 },
-      { "name": "Pressure", "address": 2 }
-    ]
-  },
+  "device_name": "MAIN-FACTORY-GW",
+  "devices": [
+    {
+      "name": "Molder-TCP-01",
+      "type": "modbus_tcp",
+      "address": "127.0.0.1:502",
+      "slave_id": 1,
+      "timeout": 5,
+      "scan_interval": 10, 
+      "sensors": [
+        { "name": "Temperature", "address": 0, "scale": 0.1, "interval": 60 },
+        { "name": "Humidity", "address": 1, "scale": 0.1, "interval": 60 },
+        { "name": "Shot_Count", "address": 2, "scale": 1.0, "interval": 1 }
+      ]
+    },
+    {
+      "name": "Molder-RTU-02",
+      "type": "modbus_rtu",
+      "address": "COM3",
+      "slave_id": 2,
+      "timeout": 5,
+      "scan_interval": 5,
+      "sensors": [
+        { "name": "Vibration", "address": 10, "scale": 0.01, "interval": 2 },
+        { "name": "Load", "address": 11, "scale": 0.1 }
+      ]
+    }
+  ],
   "mqtt": {
     "broker": "tcp://localhost:1883",
     "topic": "mes/telemetry",

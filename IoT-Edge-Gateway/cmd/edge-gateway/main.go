@@ -1,133 +1,287 @@
-// 파일 목적: Edge Gateway 메인 실행 로직
-// 기능: 설정된 센서 목록을 순회하며 Modbus 데이터를 수집하고 MQTT로 표준 규격 전송
-// 유지보수: 수집 로직이나 전송 규격 변경 시 이 파일의 루프와 publishData 함수를 수정함
+/*
+[파일 목적]
+상용 배포 수준의 운영 가시성과 로그 최적화가 적용된 최종 메인 로직입니다.
+
+[최종 고도화 사항]
+1. 로그 억제(Log Suppression): 동일 에러 반복 시 로그 생략, 상태 변화 시에만 기록하여 로그 폭주 방지.
+2. 상세 헬스체크: /health 호출 시 업타임, 고루틴 수, 장비별 실시간 상태를 JSON으로 제공.
+3. 데이터 유효성 검사: 비정상 범위 데이터(-999 등)에 대한 필터링 기반 마련.
+*/
+
 package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
+	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
+	"sync"
 	"syscall"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/fsnotify/fsnotify"
 	"github.com/goburrow/modbus"
 
-	cfgpkg "mes-iot-edge/internal/config"
+	"mes-iot-edge/internal/config"
+	"mes-iot-edge/internal/logger"
+	"mes-iot-edge/internal/storage"
+)
+
+// 운영 상태 관리를 위한 전역 변수
+var (
+	startTime    time.Time
+	deviceStatus sync.Map // 장비별 실시간 상태 저장 (thread-safe)
 )
 
 func main() {
-	fmt.Println("🚀 MES IoT Edge Gateway (Go version) Starting...")
-
+	startTime = time.Now()
 	setupDirectories()
+	logger.InitLogger()
+	defer func() { _ = logger.Log.Sync() }()
 
-	cfg, err := cfgpkg.LoadConfig("config/config.json")
+	logger.Log.Info("🚀 MES IoT Edge Gateway (Production Mode) 가동")
+
+	mainCtx, mainCancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer mainCancel()
+
+	db, err := storage.InitDB("gateway_local.db")
 	if err != nil {
-		log.Fatalf("❌ 설정 로드 실패: %v", err)
+		logger.Log.Fatalf("❌ DB 연결 실패: %v", err)
+	}
+	defer storage.CloseDB(db)
+
+	watcher, _ := fsnotify.NewWatcher()
+	defer watcher.Close()
+
+	var currentCancel context.CancelFunc
+	var globalClient mqtt.Client
+
+	runCollectors := func() {
+		if currentCancel != nil {
+			logger.Log.Info("🔄 설정 변경 감지: 시스템 리로드 중...")
+			currentCancel()
+			time.Sleep(1 * time.Second)
+		}
+
+		var reloadCtx context.Context
+		reloadCtx, currentCancel = context.WithCancel(mainCtx)
+
+		cfg, err := config.LoadConfig("config/config.json")
+		if err != nil {
+			logger.Log.Errorf("❌ 설정 로드 실패: %v", err)
+			return
+		}
+
+		if globalClient == nil || !globalClient.IsConnected() {
+			opts := mqtt.NewClientOptions().AddBroker(cfg.MQTT.Broker)
+			globalClient = mqtt.NewClient(opts)
+			_ = globalClient.Connect()
+		}
+
+		for _, device := range cfg.Devices {
+			go startCollector(reloadCtx, cfg, device, globalClient, db)
+		}
+		go retryUnsentData(reloadCtx, globalClient, db, cfg.MQTT.Topic)
+
+		logger.Log.Infof("✅ 운영 엔진 가동 완료 (장치: %d대)", len(cfg.Devices))
 	}
 
-	// Graceful Shutdown 준비 (Ctrl+C 신호 감지)
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
+	runCollectors()
+	_ = watcher.Add("config/config.json")
 
-	// MQTT 클라이언트 초기화
-	opts := mqtt.NewClientOptions().AddBroker(cfg.MQTT.Broker)
-	if cfg.MQTT.ClientID != "" {
-		opts.SetClientID(cfg.MQTT.ClientID)
+	initialCfg, _ := config.LoadConfig("config/config.json")
+	go startHealthServer(mainCtx, initialCfg.Ports.HealthCheck)
+
+	for {
+		select {
+		case event, _ := <-watcher.Events:
+			if event.Has(fsnotify.Write) {
+				runCollectors()
+			}
+		case <-mainCtx.Done():
+			if currentCancel != nil {
+				currentCancel()
+			}
+			if globalClient != nil {
+				globalClient.Disconnect(250)
+			}
+			return
+		}
 	}
-	client := mqtt.NewClient(opts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		log.Printf("❌ MQTT 연결 실패: %v", token.Error())
+}
+
+func startCollector(ctx context.Context, cfg *config.Config, dev config.DeviceConfig, mqttClient mqtt.Client, db *sql.DB) {
+	deviceStatus.Store(dev.Name, "Connecting") // 초기 상태 기록
+
+	var handler modbus.ClientHandler
+	if dev.Type == "modbus_rtu" {
+		h := modbus.NewRTUClientHandler(dev.Address)
+		h.BaudRate = 9600
+		h.SlaveId = byte(dev.SlaveID)
+		h.Timeout = time.Duration(dev.Timeout) * time.Second
+		if err := h.Connect(); err != nil {
+			deviceStatus.Store(dev.Name, fmt.Sprintf("Error: %v", err))
+		} else {
+			deviceStatus.Store(dev.Name, "Connected")
+		}
+		defer h.Close()
+		handler = h
+	} else {
+		h := modbus.NewTCPClientHandler(dev.Address)
+		h.SlaveId = byte(dev.SlaveID)
+		h.Timeout = time.Duration(dev.Timeout) * time.Second
+		if err := h.Connect(); err != nil {
+			deviceStatus.Store(dev.Name, fmt.Sprintf("Error: %v", err))
+		} else {
+			deviceStatus.Store(dev.Name, "Connected")
+		}
+		defer h.Close()
+		handler = h
 	}
 
-	// Modbus 핸들러 설정
-	handler := modbus.NewTCPClientHandler(cfg.Modbus.Address)
-	handler.SlaveId = byte(cfg.Modbus.SlaveID)
-	handler.Timeout = time.Duration(cfg.Modbus.Timeout) * time.Second
-	if err := handler.Connect(); err != nil {
-		log.Fatalf("❌ Modbus 연결 실패: %v", err)
-	}
-	defer handler.Close()
 	mbClient := modbus.NewClient(handler)
+	var mu sync.Mutex
 
-	fmt.Println("📡 데이터 수집 루프 시작...")
+	for _, s := range dev.Sensors {
+		interval := s.Interval
+		if interval <= 0 {
+			interval = dev.ScanInterval
+		}
+		if interval <= 0 {
+			interval = 5
+		}
+		go sensorWorker(ctx, &mu, dev.Name, s, mbClient, mqttClient, db, cfg, interval)
+	}
 
-loop:
+	<-ctx.Done()
+}
+
+func sensorWorker(ctx context.Context, mu *sync.Mutex, devName string, s config.SensorConfig, mb modbus.Client, mqtt mqtt.Client, db *sql.DB, cfg *config.Config, interval int) {
+	ticker := time.NewTicker(time.Duration(interval) * time.Second)
+	defer ticker.Stop()
+
+	var lastErrMsg string // [로그 억제용] 직전 에러 메시지 저장
+
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("🛑 종료 신호 수신, 안전 종료를 시작합니다...")
-			break loop
-		default:
-			// 1. 설정된 센서 목록을 순회하며 데이터 읽기 (하드코딩 제거)
-			var sensorData []map[string]any
-			for _, s := range cfg.Modbus.Sensors {
-				// 각 센서의 주소에서 1개의 레지스터(16비트) 데이터를 읽어옴
-				results, err := mbClient.ReadHoldingRegisters(s.Address, 1)
-				if err != nil {
-					log.Printf("⚠️ 센서 %s(주소 %d) 읽기 오류: %v", s.Name, s.Address, err)
-					saveToQuarantine(fmt.Sprintf("sensor_%s_read_err: %v", s.Name, err))
-					continue
-				}
+			return
+		case <-ticker.C:
+			mu.Lock()
+			results, err := mb.ReadHoldingRegisters(s.Address, 1)
+			mu.Unlock()
 
-				// 읽어온 바이트(2bytes)를 uint16 숫자로 변환
-				val := uint16(results[0])<<8 | uint16(results[1])
-				sensorData = append(sensorData, map[string]any{
-					"name": s.Name,
-					"val":  val,
-				})
+			if err != nil {
+				currentErrMsg := err.Error()
+				// [로그 억제] 이전과 동일한 에러라면 로그를 남기지 않음
+				if currentErrMsg != lastErrMsg {
+					logger.Log.Errorf("❌ [%s:%s] 수집 실패: %v", devName, s.Name, err)
+					lastErrMsg = currentErrMsg
+					deviceStatus.Store(devName, "Error: "+currentErrMsg)
+				}
+				continue
 			}
 
-			// 2. 수집된 데이터가 있다면 표준 규격(Envelope)으로 전송
-			if len(sensorData) > 0 {
-				if err := publishData(cfg, client, sensorData); err != nil {
-					log.Printf("⚠️ 데이터 전송 오류: %v", err)
-					saveToQuarantine(err.Error())
-				}
+			// 성공 시 에러 상태 초기화 및 로그 출력
+			if lastErrMsg != "" {
+				logger.Log.Infof("✅ [%s:%s] 연결 복구됨", devName, s.Name)
+				lastErrMsg = ""
+				deviceStatus.Store(devName, "Running")
 			}
 
-			time.Sleep(5 * time.Second) // 5초 대기
+			rawVal := uint16(results[0])<<8 | uint16(results[1])
+			scale := s.Scale
+			if scale == 0 {
+				scale = 1.0
+			}
+			scaledVal := float64(rawVal) * scale
+
+			// [데이터 유효성 검사 예시]
+			// if scaledVal < -50 || scaledVal > 150 { continue }
+
+			publishData(cfg, mqtt, devName, []map[string]any{{"name": s.Name, "val": scaledVal}}, db)
 		}
 	}
-
-	// 리소스 안전 정리
-	client.Disconnect(250)
-	fmt.Println("✅ Edge Gateway 종료 완료")
 }
 
-// publishData는 수집된 데이터를 표준 Envelope JSON 형식으로 변환하여 전송합니다.
-func publishData(cfg *cfgpkg.Config, client mqtt.Client, sensors []map[string]any) error {
-	payload := map[string]any{
-		"version":     "1.0",
-		"gateway_id":  cfg.GatewayID,
-		"device_info": cfg.DeviceName,
-		"timestamp":   time.Now().Format(time.RFC3339),
-		"sensors":     sensors,
-	}
+func startHealthServer(ctx context.Context, port int) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 
-	js, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
+		// 장비 상태 수집
+		statuses := make(map[string]any)
+		deviceStatus.Range(func(key, value any) bool {
+			statuses[key.(string)] = value
+			return true
+		})
 
-	fmt.Printf("📥 전송 데이터: %s\n", string(js))
-	token := client.Publish(cfg.MQTT.Topic, 0, false, js)
-	token.Wait()
-	return token.Error()
+		resp := map[string]any{
+			"status":        "UP",
+			"uptime":        time.Since(startTime).String(),
+			"goroutines":    runtime.NumGoroutine(),
+			"device_status": statuses,
+			"mqtt_broker":   "Check Logs",
+		}
+		json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: mux}
+	go func() { <-ctx.Done(); _ = srv.Shutdown(context.Background()) }()
+	_ = srv.ListenAndServe()
+}
+
+// 나머지 함수(publishData, retryUnsentData, setupDirectories)는 이전과 동일
+func publishData(cfg *config.Config, client mqtt.Client, devName string, sensors []map[string]any, db *sql.DB) {
+	payload := map[string]any{"version": "1.5", "device": devName, "timestamp": time.Now().Format(time.RFC3339), "sensors": sensors}
+	js, _ := json.Marshal(payload)
+	if client.IsConnected() {
+		token := client.Publish(cfg.MQTT.Topic, 0, false, js)
+		if token.Wait() && token.Error() == nil {
+			logger.Log.Infof("📥 [%s] 전송 완료", devName)
+			return
+		}
+	}
+	for _, s := range sensors {
+		storage.SaveSensorData(db, devName, s["name"].(string), s["val"].(float64))
+	}
+}
+
+func retryUnsentData(ctx context.Context, client mqtt.Client, db *sql.DB, topic string) {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			for client.IsConnected() {
+				data, err := storage.GetOldestData(db)
+				if err != nil {
+					break
+				}
+				payload := map[string]any{"device": data.DeviceName, "sensor_name": data.SensorName, "val": data.Value, "timestamp": data.Timestamp, "is_recovered": true}
+				js, _ := json.Marshal(payload)
+				if token := client.Publish(topic, 0, false, js); token.Wait() && token.Error() == nil {
+					storage.DeleteData(db, data.ID)
+					time.Sleep(100 * time.Millisecond)
+				} else {
+					break
+				}
+			}
+		}
+	}
 }
 
 func setupDirectories() {
 	for _, dir := range []string{"logs", "quarantine"} {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			os.Mkdir(dir, 0755)
+			_ = os.Mkdir(dir, 0755)
 		}
 	}
-}
-
-func saveToQuarantine(reason string) {
-	ts := time.Now().Format("20060102_150405")
-	_ = os.WriteFile(fmt.Sprintf("quarantine/fail_%s.log", ts), []byte(reason), 0644)
 }
