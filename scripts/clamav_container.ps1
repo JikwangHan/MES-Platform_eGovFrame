@@ -15,7 +15,7 @@ $dbVolume = "clamav-db"
 
 function Start-ClamAvContainer {
   Write-Host "ClamAV 컨테이너를 시작합니다."
-  & docker run -d --name $containerName -p 3310:3310 -v "$dbVolume:/var/lib/clamav" $imageName
+  & docker run -d --name $containerName -p 3310:3310 -v "${dbVolume}:/var/lib/clamav" $imageName
 }
 
 function Stop-ClamAvContainer {
@@ -31,7 +31,17 @@ function Show-ClamAvStatus {
 
 function Update-ClamAvSignatures {
   Write-Host "ClamAV 시그니처 업데이트를 수행합니다."
-  & docker exec -it $containerName freshclam
+  # 목적: 콘솔 TTY 없는 환경에서도 업데이트가 실행되도록 합니다.
+  # 이유: 자동화/로그 기반 실행에서는 -it 옵션이 실패할 수 있습니다.
+  # 목적: 컨테이너 내부에서 freshclam 데몬이 이미 동작 중인지 확인합니다.
+  # 이유: 동작 중이면 로그 잠금으로 업데이트가 실패할 수 있습니다.
+  $freshclamRunning = & docker exec -i $containerName sh -lc "pgrep -x freshclam >/dev/null && echo RUNNING || echo STOPPED"
+  if ($freshclamRunning -match "RUNNING") {
+    Write-Host "freshclam 데몬이 이미 실행 중입니다. (자동 업데이트 중)"
+    Write-Host "필요 시 컨테이너를 재시작한 뒤 다시 업데이트를 시도하세요."
+    return
+  }
+  & docker exec -i $containerName freshclam --foreground --stdout
 }
 
 switch ($Action) {
