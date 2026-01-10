@@ -54,24 +54,49 @@ Write-Host "[STEP 3/3] 파이프라인 스모크 테스트 실행" | Tee-Object 
 # 목적: 보안 스캔 구현체를 환경에 따라 선택합니다.
 # 이유: ClamAV가 설치된 환경에서는 실제 스캔을 수행할 수 있습니다.
 $useClamAv = $env:AI_USE_CLAMAV
-if ($useClamAv -and $useClamAv.ToLower() -eq "true") {
-  Write-Host "MODE: CLAMAV" | Tee-Object -FilePath $logFile -Append
-  Write-Host "ClamAV 스캔 모드로 실행합니다." | Tee-Object -FilePath $logFile -Append
-  # 목적: clamscan 실행 파일 존재 여부를 확인합니다.
-  # 이유: 미설치 상태에서 오류가 나지 않도록 안내합니다.
-  if (-not (Get-Command clamscan -ErrorAction SilentlyContinue)) {
-    $msg = "ClamAV(clamscan)을 찾을 수 없습니다. AI_USE_CLAMAV 설정을 해제하거나 ClamAV를 설치하세요."
-    Write-Host $msg | Tee-Object -FilePath $logFile -Append
-    exit 1
+if ($useClamAv) {
+  $mode = $useClamAv.ToLower()
+  if ($mode -eq "daemon" -or $mode -eq "clamd") {
+    Write-Host "MODE: CLAMAV_DAEMON" | Tee-Object -FilePath $logFile -Append
+    Write-Host "ClamAV daemon(clamd) 스캔 모드로 실행합니다." | Tee-Object -FilePath $logFile -Append
+    $javaArgs = @(
+      "-Dfile.encoding=UTF-8",
+      "-Dai.security.scan.impl=clamd",
+      "-Dai.security.scan.clamdHost=127.0.0.1",
+      "-Dai.security.scan.clamdPort=3310",
+      "-cp", $fullClasspath,
+      "com.mes.ai.tools.PipelineSmokeRunner"
+    )
+    & java @javaArgs | Tee-Object -FilePath $logFile -Append
+  } elseif ($mode -eq "true" -or $mode -eq "clamscan") {
+    Write-Host "MODE: CLAMAV" | Tee-Object -FilePath $logFile -Append
+    Write-Host "ClamAV clamscan 스캔 모드로 실행합니다." | Tee-Object -FilePath $logFile -Append
+    # 목적: clamscan 실행 파일 존재 여부를 확인합니다.
+    # 이유: 미설치 상태에서 오류가 나지 않도록 안내합니다.
+    if (-not (Get-Command clamscan -ErrorAction SilentlyContinue)) {
+      $msg = "ClamAV(clamscan)을 찾을 수 없습니다. AI_USE_CLAMAV 설정을 해제하거나 ClamAV를 설치하세요."
+      Write-Host $msg | Tee-Object -FilePath $logFile -Append
+      exit 1
+    }
+    $javaArgs = @(
+      "-Dfile.encoding=UTF-8",
+      "-Dai.security.scan.impl=clamav",
+      "-Dai.security.scan.command=clamscan",
+      "-cp", $fullClasspath,
+      "com.mes.ai.tools.PipelineSmokeRunner"
+    )
+    & java @javaArgs | Tee-Object -FilePath $logFile -Append
+  } else {
+    Write-Host "MODE: MOCK (AI_USE_CLAMAV 값이 인식되지 않아 모의 스캔으로 대체합니다.)" | Tee-Object -FilePath $logFile -Append
+    $javaArgs = @(
+      "-Dfile.encoding=UTF-8",
+      "-Dai.security.scan.mockClean=true",
+      "-Dai.security.scan.impl=inmemory",
+      "-cp", $fullClasspath,
+      "com.mes.ai.tools.PipelineSmokeRunner"
+    )
+    & java @javaArgs | Tee-Object -FilePath $logFile -Append
   }
-  $javaArgs = @(
-    "-Dfile.encoding=UTF-8",
-    "-Dai.security.scan.impl=clamav",
-    "-Dai.security.scan.command=clamscan",
-    "-cp", $fullClasspath,
-    "com.mes.ai.tools.PipelineSmokeRunner"
-  )
-  & java @javaArgs | Tee-Object -FilePath $logFile -Append
 } else {
   Write-Host "MODE: MOCK" | Tee-Object -FilePath $logFile -Append
   Write-Host "메모리 스캔 모드로 실행합니다. (모의 CLEAN)" | Tee-Object -FilePath $logFile -Append
