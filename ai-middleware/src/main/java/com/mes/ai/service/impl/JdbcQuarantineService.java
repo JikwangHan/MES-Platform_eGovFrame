@@ -18,9 +18,18 @@ import java.sql.SQLException;
  * 유지보수: 테이블 구조 변경 시 SQL과 매핑을 이 클래스에서 수정합니다.
  */
 public class JdbcQuarantineService implements QuarantineService {
-    private static final String INSERT_QUARANTINE_SQL =
+    /** 기본 저장 모드 SQL입니다. */
+    private static final String INSERT_QUARANTINE_SQL_BASIC =
             "INSERT INTO quarantine_data (raw_id, reason_code, reason_detail, created_at) " +
             "VALUES (?, ?, ?, CURRENT_TIMESTAMP)";
+    /** 확장 저장 모드 SQL입니다. */
+    private static final String INSERT_QUARANTINE_SQL_EXTENDED =
+            "INSERT INTO quarantine_data (raw_id, reason_code, reason_detail, scan_status, scan_engine, scan_signature, scan_duration_ms, created_at) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
+    /** 저장 모드 시스템 속성 키입니다. */
+    private static final String INSERT_MODE_KEY = "ai.jdbc.insertMode";
+    /** 확장 저장 모드 값입니다. */
+    private static final String INSERT_MODE_EXTENDED = "extended";
     /** 재시도 횟수(기본 1회)입니다. */
     private static final int DEFAULT_RETRY_COUNT = 1;
     /** 재시도 대기 시간(ms)입니다. */
@@ -60,10 +69,12 @@ public class JdbcQuarantineService implements QuarantineService {
         int maxAttempts = resolveRetryCount();
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try (Connection connection = dataSource.getConnection();
-                 PreparedStatement statement = connection.prepareStatement(INSERT_QUARANTINE_SQL)) {
-                statement.setLong(1, rawEnvelope.getId());
-                statement.setString(2, parts.reasonCode);
-                statement.setString(3, parts.reasonDetail);
+                 PreparedStatement statement = connection.prepareStatement(resolveInsertSql())) {
+                if (useExtendedMode()) {
+                    bindExtended(statement, rawEnvelope, parts, scanResult);
+                } else {
+                    bindBasic(statement, rawEnvelope, parts);
+                }
                 statement.executeUpdate();
                 return;
             } catch (SQLException ex) {
@@ -148,5 +159,72 @@ public class JdbcQuarantineService implements QuarantineService {
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    /**
+     * 목적: 격리 저장 SQL을 선택합니다.
+     * 기능: 기본/확장 모드에 따라 SQL을 반환합니다.
+     * 이유: 운영 환경의 컬럼 구성 차이를 흡수하기 위함입니다.
+     * 유지보수: 컬럼 구조 변경 시 상수를 수정합니다.
+     */
+    private String resolveInsertSql() {
+        if (useExtendedMode()) {
+            return INSERT_QUARANTINE_SQL_EXTENDED;
+        }
+        return INSERT_QUARANTINE_SQL_BASIC;
+    }
+
+    /**
+     * 목적: 기본 모드의 격리 저장 바인딩을 수행합니다.
+     * 기능: raw_id/사유만 저장합니다.
+     * 이유: 최소 컬럼 구성을 지원하기 위함입니다.
+     * 유지보수: 기본 모드 컬럼이 늘어나면 이 메서드를 수정합니다.
+     */
+    private void bindBasic(PreparedStatement statement, RawEnvelope rawEnvelope, ReasonParts parts) throws SQLException {
+        statement.setLong(1, rawEnvelope.getId());
+        statement.setString(2, parts.reasonCode);
+        statement.setString(3, parts.reasonDetail);
+    }
+
+    /**
+     * 목적: 확장 모드의 격리 저장 바인딩을 수행합니다.
+     * 기능: 기본 컬럼 + 스캔 정보를 저장합니다.
+     * 이유: 보안 스캔 추적을 강화하기 위함입니다.
+     * 유지보수: 확장 모드 컬럼이 바뀌면 이 메서드를 수정합니다.
+     */
+    private void bindExtended(PreparedStatement statement, RawEnvelope rawEnvelope, ReasonParts parts, ScanResult scanResult)
+            throws SQLException {
+        statement.setLong(1, rawEnvelope.getId());
+        statement.setString(2, parts.reasonCode);
+        statement.setString(3, parts.reasonDetail);
+        if (scanResult != null) {
+            statement.setString(4, scanResult.getStatus() == null ? null : scanResult.getStatus().name());
+            statement.setString(5, scanResult.getEngine());
+            statement.setString(6, scanResult.getSignature());
+            if (scanResult.getDurationMs() == null) {
+                statement.setObject(7, null);
+            } else {
+                statement.setLong(7, scanResult.getDurationMs());
+            }
+        } else {
+            statement.setObject(4, null);
+            statement.setObject(5, null);
+            statement.setObject(6, null);
+            statement.setObject(7, null);
+        }
+    }
+
+    /**
+     * 목적: 확장 모드 저장 여부를 확인합니다.
+     * 기능: 시스템 속성 값으로 모드를 판단합니다.
+     * 이유: 환경별 컬럼 차이를 코드 수정 없이 대응하기 위함입니다.
+     * 유지보수: 속성 키/모드 값 변경 시 상수를 수정합니다.
+     */
+    private boolean useExtendedMode() {
+        String raw = System.getProperty(INSERT_MODE_KEY);
+        if (raw == null || raw.trim().isEmpty()) {
+            return false;
+        }
+        return INSERT_MODE_EXTENDED.equalsIgnoreCase(raw.trim());
     }
 }
