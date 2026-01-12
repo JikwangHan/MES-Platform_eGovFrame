@@ -105,6 +105,12 @@ public class HttpIngressSmokeRunner {
                 buildPayload(true, sample2SchemaVersion, sample2DeviceTypeId, sample2MessageType, "device-003"),
                 storeService, quarantineService, unknownService);
 
+        // 목적: 버전 형식 오류가 검증 실패로 격리되는지 확인합니다.
+        // 이유: 버전 형식이 깨지면 해석 규칙이 달라져 품질 문제가 발생하기 때문입니다.
+        runCase("버전 형식 오류 케이스", port, path,
+                buildInvalidVersionPayload(defaultSchemaVersion, defaultDeviceTypeId, defaultMessageType, "device-004"),
+                storeService, quarantineService, unknownService);
+
         // 목적: 경고 케이스 요청을 보내 경고 통과 흐름을 확인합니다.
         // 이유: 스키마 미등록 경고가 Unknown 기록으로 남는지 확인하기 위함입니다.
         System.setProperty(MISSING_POLICY_KEY, "warn");
@@ -195,6 +201,29 @@ public class HttpIngressSmokeRunner {
                 + "\"evtId\":\"evt-102\","
                 + "\"protocol_ver\":\"1.0\","
                 + "\"schema_ver\":\"" + schemaVersion + "\""
+                + "}";
+    }
+
+    /**
+     * 목적: 버전 형식 오류 payload를 생성합니다.
+     * 기능: protocolVersion을 잘못된 형식으로 설정합니다.
+     * 이유: 기본 검증 단계에서 형식 오류가 격리되는지 확인하기 위함입니다.
+     * 유지보수: 버전 규칙이 바뀌면 이 메서드도 함께 조정합니다.
+     */
+    private static String buildInvalidVersionPayload(
+            String schemaVersion,
+            String deviceTypeId,
+            String messageType,
+            String deviceId
+    ) {
+        return "{"
+                + "\"deviceId\":\"" + deviceId + "\","
+                + "\"deviceTypeId\":\"" + deviceTypeId + "\","
+                + "\"messageType\":\"" + messageType + "\","
+                + "\"timestamp\":\"2026-01-01T00:00:00Z\","
+                + "\"eventId\":\"evt-103\","
+                + "\"protocolVersion\":\"1\","
+                + "\"schemaVersion\":\"" + schemaVersion + "\""
                 + "}";
     }
 

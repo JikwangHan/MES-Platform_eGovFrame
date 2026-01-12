@@ -30,6 +30,7 @@ java "-Dfile.encoding=UTF-8" "-Dai.security.scan.mockClean=true" "-Dai.http.port
 
 장비 샘플 케이스는 다른 deviceTypeId/messageType 조합으로 정상 저장을 확인합니다.
 별칭 매핑 케이스는 표준 키 대신 별칭 키로 들어온 입력을 정규화하는지 확인합니다.
+버전 형식 오류 케이스는 protocolVersion 규칙 위반이 격리되는지 확인합니다.
 경고 케이스는 스키마 버전을 일부러 불일치시키며, 내부에서 warn 정책을 사용합니다.
 
 ## 결과(PASS 근거)
@@ -52,6 +53,11 @@ java "-Dfile.encoding=UTF-8" "-Dai.security.scan.mockClean=true" "-Dai.http.port
 - 응답 코드: 202
 - 표준 저장 증가: 1
 - Unknown Ingest 증가: 0
+
+### 버전 형식 오류 케이스
+- 응답 코드: 202
+- 표준 저장 증가: 0
+- 격리 증가: 1
 
 ### 경고 케이스
 - 응답 코드: 202
