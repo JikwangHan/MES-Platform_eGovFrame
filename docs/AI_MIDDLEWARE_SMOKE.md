@@ -25,15 +25,23 @@ java "-Dfile.encoding=UTF-8" "-Dai.security.scan.mockClean=true" -cp $cp com.mes
 포트 충돌이 있으면 아래처럼 포트를 지정합니다.
 ```powershell
 java "-Dfile.encoding=UTF-8" "-Dai.security.scan.mockClean=true" "-Dai.http.port=18080" -cp $cp com.mes.ai.tools.HttpIngressSmokeRunner
+java "-Dfile.encoding=UTF-8" "-Dai.security.scan.mockClean=true" "-Dai.http.port=18081" -cp $cp com.mes.ai.tools.HttpIngressSmokeRunner
 ```
+
+경고 케이스는 스키마 버전을 일부러 불일치시키며, 내부에서 warn 정책을 사용합니다.
 
 ## 결과(PASS 근거)
 ### 성공 케이스
 - 응답 코드: 202
-- 표준 저장 건수: 1
-- Unknown Ingest 건수: 0
+- 표준 저장 증가: 1
+- Unknown Ingest 증가: 0
+
+### 경고 케이스
+- 응답 코드: 202
+- 표준 저장 증가: 1
+- Unknown Ingest 증가: 1
 
 ### 실패 케이스
 - 응답 코드: 202
-- 표준 저장 건수: 1
-- 격리 건수: 1
+- 표준 저장 증가: 0
+- 격리 증가: 1

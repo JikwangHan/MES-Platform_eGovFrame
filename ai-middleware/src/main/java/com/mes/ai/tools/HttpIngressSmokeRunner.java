@@ -31,6 +31,8 @@ import java.util.Map;
  * 유지보수: 확장/변경 시 이 클래스에서 정책을 조정합니다.
  */
 public class HttpIngressSmokeRunner {
+    /** 스키마 미등록 정책 시스템 속성 키입니다. */
+    private static final String MISSING_POLICY_KEY = "ai.schema.missingPolicy";
     /**
      * 목적: main 동작을 수행합니다.
      * 기능: 필요한 처리를 수행합니다.
@@ -72,13 +74,22 @@ public class HttpIngressSmokeRunner {
 
         // 목적: 정상 케이스 요청을 보내 성공 흐름을 확인합니다.
         // 이유: Ingress -> Normalizer -> Validator -> Store 흐름을 통합 검증합니다.
-        HttpResponse<String> successResponse = sendTestRequest(port, path, buildPayload(true));
-        printSummary("성공 케이스", successResponse, storeService, quarantineService, unknownService);
+        String defaultSchemaVersion = System.getProperty("ai.schema.key.schemaVersion", "1.0");
+        runCase("성공 케이스", port, path, buildPayload(true, defaultSchemaVersion),
+                storeService, quarantineService, unknownService);
+
+        // 목적: 경고 케이스 요청을 보내 경고 통과 흐름을 확인합니다.
+        // 이유: 스키마 미등록 경고가 Unknown 기록으로 남는지 확인하기 위함입니다.
+        System.setProperty(MISSING_POLICY_KEY, "warn");
+        String warnSchemaVersion = System.getProperty("ai.schema.warn.schemaVersion", "2.0");
+        runCase("경고 케이스", port, path, buildPayload(true, warnSchemaVersion),
+                storeService, quarantineService, unknownService);
+        System.setProperty(MISSING_POLICY_KEY, "fail");
 
         // 목적: 실패 케이스 요청을 보내 격리 흐름을 확인합니다.
         // 이유: 검증 실패 데이터가 Quarantine으로 분기되는지 확인하기 위함입니다.
-        HttpResponse<String> failResponse = sendTestRequest(port, path, buildPayload(false));
-        printSummary("실패 케이스", failResponse, storeService, quarantineService, unknownService);
+        runCase("실패 케이스", port, path, buildPayload(false, defaultSchemaVersion),
+                storeService, quarantineService, unknownService);
 
         server.stop();
     }
@@ -114,8 +125,7 @@ public class HttpIngressSmokeRunner {
      * 이유: 동일한 흐름으로 정상/격리 분기를 확인하기 위함입니다.
      * 유지보수: 테스트 항목이 늘어나면 이 메서드를 확장합니다.
      */
-    private static String buildPayload(boolean valid) {
-        String schemaVersion = System.getProperty("ai.schema.key.schemaVersion", "1.0");
+    private static String buildPayload(boolean valid, String schemaVersion) {
         String messageType = System.getProperty("ai.schema.key.messageType", "TELEMETRY");
         String deviceTypeId = System.getProperty("ai.schema.key.deviceTypeId", "MES");
         String eventId = valid ? "evt-101" : "";
@@ -141,18 +151,49 @@ public class HttpIngressSmokeRunner {
     private static void printSummary(
             String title,
             HttpResponse<String> response,
-            InMemoryStoreService storeService,
-            InMemoryQuarantineService quarantineService,
-            InMemoryUnknownIngestService unknownService
+            int rawDelta,
+            int standardDelta,
+            int quarantineDelta,
+            int unknownDelta
     ) {
         System.out.println("=== HTTP Ingress 스모크 테스트 결과: " + title + " ===");
         System.out.println("응답 코드: " + response.statusCode());
         System.out.println("응답 본문: " + response.body());
-        System.out.println("원본 저장 건수: " + storeService.getRawStore().size());
-        System.out.println("표준 저장 건수: " + storeService.getStandardStore().size());
-        System.out.println("격리 건수: " + quarantineService.getRecords().size());
-        System.out.println("Unknown Ingest 건수: " + unknownService.getRecords().size());
+        System.out.println("원본 저장 증가: " + rawDelta);
+        System.out.println("표준 저장 증가: " + standardDelta);
+        System.out.println("격리 증가: " + quarantineDelta);
+        System.out.println("Unknown Ingest 증가: " + unknownDelta);
         System.out.println("==============================================");
+    }
+
+    /**
+     * 목적: 케이스별 결과를 실행하고 증가 건수를 계산합니다.
+     * 기능: 실행 전/후 카운트를 비교해 증가값을 출력합니다.
+     * 이유: 누적 카운트로 인한 혼동을 줄이기 위함입니다.
+     * 유지보수: 출력 정책 변경 시 이 메서드를 수정합니다.
+     */
+    private static void runCase(
+            String title,
+            int port,
+            String path,
+            String payload,
+            InMemoryStoreService storeService,
+            InMemoryQuarantineService quarantineService,
+            InMemoryUnknownIngestService unknownService
+    ) {
+        int rawBefore = storeService.getRawStore().size();
+        int standardBefore = storeService.getStandardStore().size();
+        int quarantineBefore = quarantineService.getRecords().size();
+        int unknownBefore = unknownService.getRecords().size();
+
+        HttpResponse<String> response = sendTestRequest(port, path, payload);
+
+        int rawDelta = storeService.getRawStore().size() - rawBefore;
+        int standardDelta = storeService.getStandardStore().size() - standardBefore;
+        int quarantineDelta = quarantineService.getRecords().size() - quarantineBefore;
+        int unknownDelta = unknownService.getRecords().size() - unknownBefore;
+
+        printSummary(title, response, rawDelta, standardDelta, quarantineDelta, unknownDelta);
     }
 
     /**
