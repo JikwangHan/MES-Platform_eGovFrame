@@ -26,6 +26,7 @@ public final class PayloadNormalizationUtils {
      * 기능: 기존 키가 없을 때만 별칭 값을 표준 키로 복사합니다.
      * 이유: 입력 포맷 차이로 인한 검증 실패를 줄이기 위함입니다.
      * 유지보수: 별칭 목록이 늘어나면 copyIfMissing 호출만 추가하면 됩니다.
+     * 참고: 매핑 기준은 docs/AI_MIDDLEWARE_MAPPING.md와 동일하게 유지합니다.
      */
     public static Map<String, Object> applyStandardAliases(Map<String, Object> payload) {
         if (payload == null || payload.isEmpty()) {
