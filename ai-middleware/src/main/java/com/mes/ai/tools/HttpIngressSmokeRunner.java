@@ -70,20 +70,15 @@ public class HttpIngressSmokeRunner {
         // 이유: 즉시 요청 시 연결 실패가 나는 상황을 줄입니다.
         sleepQuietly(200);
 
-        // 목적: 실제 HTTP 요청을 보내 정상 수신 여부를 확인합니다.
+        // 목적: 정상 케이스 요청을 보내 성공 흐름을 확인합니다.
         // 이유: Ingress -> Normalizer -> Validator -> Store 흐름을 통합 검증합니다.
-        HttpResponse<String> response = sendTestRequest(port, path);
+        HttpResponse<String> successResponse = sendTestRequest(port, path, buildPayload(true));
+        printSummary("성공 케이스", successResponse, storeService, quarantineService, unknownService);
 
-        // 목적: 테스트 결과를 요약 출력합니다.
-        // 이유: 초보자도 성공/실패를 쉽게 확인할 수 있게 합니다.
-        System.out.println("=== HTTP Ingress 스모크 테스트 결과 ===");
-        System.out.println("응답 코드: " + response.statusCode());
-        System.out.println("응답 본문: " + response.body());
-        System.out.println("원본 저장 건수: " + storeService.getRawStore().size());
-        System.out.println("표준 저장 건수: " + storeService.getStandardStore().size());
-        System.out.println("격리 건수: " + quarantineService.getRecords().size());
-        System.out.println("Unknown Ingest 건수: " + unknownService.getRecords().size());
-        System.out.println("====================================");
+        // 목적: 실패 케이스 요청을 보내 격리 흐름을 확인합니다.
+        // 이유: 검증 실패 데이터가 Quarantine으로 분기되는지 확인하기 위함입니다.
+        HttpResponse<String> failResponse = sendTestRequest(port, path, buildPayload(false));
+        printSummary("실패 케이스", failResponse, storeService, quarantineService, unknownService);
 
         server.stop();
     }
@@ -94,20 +89,8 @@ public class HttpIngressSmokeRunner {
      * 이유: 서버 수신 경로를 실제로 호출해 검증하기 위함입니다.
      * 유지보수: 로직 변경 시 이 메서드를 수정합니다.
      */
-    private static HttpResponse<String> sendTestRequest(int port, String path) {
-        String schemaVersion = System.getProperty("ai.schema.key.schemaVersion", "1.0");
-        String messageType = System.getProperty("ai.schema.key.messageType", "TELEMETRY");
-        String deviceTypeId = System.getProperty("ai.schema.key.deviceTypeId", "MES");
+    private static HttpResponse<String> sendTestRequest(int port, String path, String payload) {
         String url = "http://localhost:" + port + path;
-        String payload = "{"
-                + "\"deviceId\":\"device-001\","
-                + "\"deviceTypeId\":\"" + deviceTypeId + "\","
-                + "\"messageType\":\"" + messageType + "\","
-                + "\"timestamp\":\"2026-01-01T00:00:00Z\","
-                + "\"eventId\":\"evt-101\","
-                + "\"protocolVersion\":\"1.0\","
-                + "\"schemaVersion\":\"" + schemaVersion + "\""
-                + "}";
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -123,6 +106,53 @@ public class HttpIngressSmokeRunner {
         } catch (Exception ex) {
             throw new IllegalStateException("HTTP 테스트 요청 전송에 실패했습니다.", ex);
         }
+    }
+
+    /**
+     * 목적: 성공/실패 테스트용 payload를 생성합니다.
+     * 기능: 유효/무효 데이터의 핵심 차이를 반영합니다.
+     * 이유: 동일한 흐름으로 정상/격리 분기를 확인하기 위함입니다.
+     * 유지보수: 테스트 항목이 늘어나면 이 메서드를 확장합니다.
+     */
+    private static String buildPayload(boolean valid) {
+        String schemaVersion = System.getProperty("ai.schema.key.schemaVersion", "1.0");
+        String messageType = System.getProperty("ai.schema.key.messageType", "TELEMETRY");
+        String deviceTypeId = System.getProperty("ai.schema.key.deviceTypeId", "MES");
+        String eventId = valid ? "evt-101" : "";
+        String timestamp = valid ? "2026-01-01T00:00:00Z" : "2026-01-01 00:00:00";
+
+        return "{"
+                + "\"deviceId\":\"device-001\","
+                + "\"deviceTypeId\":\"" + deviceTypeId + "\","
+                + "\"messageType\":\"" + messageType + "\","
+                + "\"timestamp\":\"" + timestamp + "\","
+                + "\"eventId\":\"" + eventId + "\","
+                + "\"protocolVersion\":\"1.0\","
+                + "\"schemaVersion\":\"" + schemaVersion + "\""
+                + "}";
+    }
+
+    /**
+     * 목적: 테스트 결과를 케이스별로 요약 출력합니다.
+     * 기능: 응답/저장/격리 카운트를 한 번에 보여줍니다.
+     * 이유: 초보자도 성공/실패를 빠르게 확인할 수 있게 하기 위함입니다.
+     * 유지보수: 출력 항목 변경 시 이 메서드를 수정합니다.
+     */
+    private static void printSummary(
+            String title,
+            HttpResponse<String> response,
+            InMemoryStoreService storeService,
+            InMemoryQuarantineService quarantineService,
+            InMemoryUnknownIngestService unknownService
+    ) {
+        System.out.println("=== HTTP Ingress 스모크 테스트 결과: " + title + " ===");
+        System.out.println("응답 코드: " + response.statusCode());
+        System.out.println("응답 본문: " + response.body());
+        System.out.println("원본 저장 건수: " + storeService.getRawStore().size());
+        System.out.println("표준 저장 건수: " + storeService.getStandardStore().size());
+        System.out.println("격리 건수: " + quarantineService.getRecords().size());
+        System.out.println("Unknown Ingest 건수: " + unknownService.getRecords().size());
+        System.out.println("==============================================");
     }
 
     /**

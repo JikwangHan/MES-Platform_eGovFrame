@@ -22,7 +22,18 @@ $cp = "ai-middleware/target/classes;$deps"
 java "-Dfile.encoding=UTF-8" "-Dai.security.scan.mockClean=true" -cp $cp com.mes.ai.tools.HttpIngressSmokeRunner
 ```
 
+포트 충돌이 있으면 아래처럼 포트를 지정합니다.
+```powershell
+java "-Dfile.encoding=UTF-8" "-Dai.security.scan.mockClean=true" "-Dai.http.port=18080" -cp $cp com.mes.ai.tools.HttpIngressSmokeRunner
+```
+
 ## 결과(PASS 근거)
+### 성공 케이스
 - 응답 코드: 202
 - 표준 저장 건수: 1
 - Unknown Ingest 건수: 0
+
+### 실패 케이스
+- 응답 코드: 202
+- 표준 저장 건수: 1
+- 격리 건수: 1

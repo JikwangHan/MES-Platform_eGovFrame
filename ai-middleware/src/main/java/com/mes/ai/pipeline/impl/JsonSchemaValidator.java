@@ -143,7 +143,7 @@ public class JsonSchemaValidator implements Validator {
         }
         ValidationResult result = new ValidationResult();
         result.setPass(false);
-        result.setReason("VALIDATION_SCHEMA_MISMATCH:스키마 없음");
+        result.setReason("VALIDATION_SCHEMA_MISMATCH:스키마 없음(" + formatKey(key) + ")");
         return result;
     }
 

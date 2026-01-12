@@ -5,6 +5,7 @@ import com.mes.ai.model.MessageType;
 import com.mes.ai.model.RawEnvelope;
 import com.mes.ai.pipeline.Normalizer;
 import com.mes.ai.util.Base64Utils;
+import com.mes.ai.util.PayloadNormalizationUtils;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -39,9 +40,11 @@ public class TsvNormalizer implements Normalizer {
         // Base64로 보관된 원본을 복원합니다.
         String payload = Base64Utils.decodeToString(rawEnvelope.getPayloadBase64());
         Map<String, Object> parsed = parseTsv(payload);
-        candidate.setNormalizedPayload(parsed);
+        // 표준 키 별칭을 적용해 검증 단계의 실패를 줄입니다.
+        Map<String, Object> normalized = PayloadNormalizationUtils.applyStandardAliases(parsed);
+        candidate.setNormalizedPayload(normalized);
         // messageType은 표준 메시지 분류에 필요하므로 여기서 추출합니다.
-        candidate.setMessageType(extractMessageType(parsed));
+        candidate.setMessageType(extractMessageType(normalized));
         return candidate;
     }
 
