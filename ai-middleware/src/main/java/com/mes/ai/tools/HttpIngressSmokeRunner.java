@@ -90,6 +90,15 @@ public class HttpIngressSmokeRunner {
                 buildPayload(true, sampleSchemaVersion, sampleDeviceTypeId, sampleMessageType, "device-002"),
                 storeService, quarantineService, unknownService);
 
+        // 목적: 추가 장비 샘플 케이스를 실행해 다양한 유형을 확인합니다.
+        // 이유: 운영에서 다양한 장비 조합이 들어올 수 있기 때문입니다.
+        String sample2SchemaVersion = System.getProperty("ai.schema.sample2.schemaVersion", defaultSchemaVersion);
+        String sample2MessageType = System.getProperty("ai.schema.sample2.messageType", "COMMAND");
+        String sample2DeviceTypeId = System.getProperty("ai.schema.sample2.deviceTypeId", "PLC");
+        runCase("장비 샘플 케이스-2", port, path,
+                buildPayload(true, sample2SchemaVersion, sample2DeviceTypeId, sample2MessageType, "device-003"),
+                storeService, quarantineService, unknownService);
+
         // 목적: 경고 케이스 요청을 보내 경고 통과 흐름을 확인합니다.
         // 이유: 스키마 미등록 경고가 Unknown 기록으로 남는지 확인하기 위함입니다.
         System.setProperty(MISSING_POLICY_KEY, "warn");
@@ -246,6 +255,12 @@ public class HttpIngressSmokeRunner {
         String sampleDeviceTypeId = System.getProperty("ai.schema.sample.deviceTypeId", "SENSOR");
         SchemaKey sampleKey = new SchemaKey(sampleSchemaVersion, sampleMessageType, sampleDeviceTypeId);
         store.put(sampleKey, schemaJson);
+
+        String sample2SchemaVersion = System.getProperty("ai.schema.sample2.schemaVersion", schemaVersion);
+        String sample2MessageType = System.getProperty("ai.schema.sample2.messageType", "COMMAND");
+        String sample2DeviceTypeId = System.getProperty("ai.schema.sample2.deviceTypeId", "PLC");
+        SchemaKey sample2Key = new SchemaKey(sample2SchemaVersion, sample2MessageType, sample2DeviceTypeId);
+        store.put(sample2Key, schemaJson);
         return store;
     }
 

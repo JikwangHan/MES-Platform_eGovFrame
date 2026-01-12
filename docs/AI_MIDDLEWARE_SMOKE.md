@@ -42,6 +42,11 @@ java "-Dfile.encoding=UTF-8" "-Dai.security.scan.mockClean=true" "-Dai.http.port
 - 표준 저장 증가: 1
 - Unknown Ingest 증가: 0
 
+### 장비 샘플 케이스-2
+- 응답 코드: 202
+- 표준 저장 증가: 1
+- Unknown Ingest 증가: 0
+
 ### 경고 케이스
 - 응답 코드: 202
 - 표준 저장 증가: 1
