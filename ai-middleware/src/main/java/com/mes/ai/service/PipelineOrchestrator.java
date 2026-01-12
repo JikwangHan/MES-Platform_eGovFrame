@@ -152,6 +152,10 @@ public class PipelineOrchestrator {
         ValidationResult validationResult = validator.validate(candidate, classificationResult);
 
         if (validationResult.isPass()) {
+            // 경고성 통과는 표준 저장과 함께 Unknown 기록을 남겨 추적성을 확보합니다.
+            if (isValidationWarning(validationResult)) {
+                unknownIngestService.save(buildUnknownRecord(rawEnvelope, scanResult, validationResult.getReason()));
+            }
             /*
              * 목적: 검증 통과 데이터를 표준 Envelope로 변환해 저장합니다.
              * 기능: payload에서 핵심 식별/버전/시간 정보를 추출하여 표준 필드에 매핑합니다.
@@ -179,6 +183,26 @@ public class PipelineOrchestrator {
 
         // 실패 데이터는 사유와 함께 격리하여 재처리에 활용합니다.
         quarantineService.quarantine(rawEnvelope, validationResult, scanResult);
+    }
+
+    /**
+     * 목적: 경고성 통과 여부를 판단합니다.
+     * 기능: reason 접두어를 기준으로 경고 상태를 판별합니다.
+     * 이유: 스키마 미등록 경고처럼 통과하지만 추적이 필요한 경우를 분리합니다.
+     * 유지보수: 경고 코드 규칙이 바뀌면 이 메서드를 수정합니다.
+     */
+    private boolean isValidationWarning(ValidationResult result) {
+        if (result == null) {
+            return false;
+        }
+        if (!result.isPass()) {
+            return false;
+        }
+        String reason = result.getReason();
+        if (reason == null) {
+            return false;
+        }
+        return reason.startsWith("SCHEMA_MISSING_WARN:");
     }
 
     /**
