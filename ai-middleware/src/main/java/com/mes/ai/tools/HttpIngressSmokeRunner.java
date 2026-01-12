@@ -75,20 +75,34 @@ public class HttpIngressSmokeRunner {
         // 목적: 정상 케이스 요청을 보내 성공 흐름을 확인합니다.
         // 이유: Ingress -> Normalizer -> Validator -> Store 흐름을 통합 검증합니다.
         String defaultSchemaVersion = System.getProperty("ai.schema.key.schemaVersion", "1.0");
-        runCase("성공 케이스", port, path, buildPayload(true, defaultSchemaVersion),
+        String defaultMessageType = System.getProperty("ai.schema.key.messageType", "TELEMETRY");
+        String defaultDeviceTypeId = System.getProperty("ai.schema.key.deviceTypeId", "MES");
+        runCase("성공 케이스", port, path,
+                buildPayload(true, defaultSchemaVersion, defaultDeviceTypeId, defaultMessageType, "device-001"),
+                storeService, quarantineService, unknownService);
+
+        // 목적: 장비 샘플 케이스 요청을 보내 확장 입력을 확인합니다.
+        // 이유: 장비별 키/타입이 달라도 정상 저장되는지 확인하기 위함입니다.
+        String sampleSchemaVersion = System.getProperty("ai.schema.sample.schemaVersion", defaultSchemaVersion);
+        String sampleMessageType = System.getProperty("ai.schema.sample.messageType", "EVENT");
+        String sampleDeviceTypeId = System.getProperty("ai.schema.sample.deviceTypeId", "SENSOR");
+        runCase("장비 샘플 케이스", port, path,
+                buildPayload(true, sampleSchemaVersion, sampleDeviceTypeId, sampleMessageType, "device-002"),
                 storeService, quarantineService, unknownService);
 
         // 목적: 경고 케이스 요청을 보내 경고 통과 흐름을 확인합니다.
         // 이유: 스키마 미등록 경고가 Unknown 기록으로 남는지 확인하기 위함입니다.
         System.setProperty(MISSING_POLICY_KEY, "warn");
         String warnSchemaVersion = System.getProperty("ai.schema.warn.schemaVersion", "2.0");
-        runCase("경고 케이스", port, path, buildPayload(true, warnSchemaVersion),
+        runCase("경고 케이스", port, path,
+                buildPayload(true, warnSchemaVersion, defaultDeviceTypeId, defaultMessageType, "device-001"),
                 storeService, quarantineService, unknownService);
         System.setProperty(MISSING_POLICY_KEY, "fail");
 
         // 목적: 실패 케이스 요청을 보내 격리 흐름을 확인합니다.
         // 이유: 검증 실패 데이터가 Quarantine으로 분기되는지 확인하기 위함입니다.
-        runCase("실패 케이스", port, path, buildPayload(false, defaultSchemaVersion),
+        runCase("실패 케이스", port, path,
+                buildPayload(false, defaultSchemaVersion, defaultDeviceTypeId, defaultMessageType, "device-001"),
                 storeService, quarantineService, unknownService);
 
         server.stop();
@@ -125,14 +139,18 @@ public class HttpIngressSmokeRunner {
      * 이유: 동일한 흐름으로 정상/격리 분기를 확인하기 위함입니다.
      * 유지보수: 테스트 항목이 늘어나면 이 메서드를 확장합니다.
      */
-    private static String buildPayload(boolean valid, String schemaVersion) {
-        String messageType = System.getProperty("ai.schema.key.messageType", "TELEMETRY");
-        String deviceTypeId = System.getProperty("ai.schema.key.deviceTypeId", "MES");
+    private static String buildPayload(
+            boolean valid,
+            String schemaVersion,
+            String deviceTypeId,
+            String messageType,
+            String deviceId
+    ) {
         String eventId = valid ? "evt-101" : "";
         String timestamp = valid ? "2026-01-01T00:00:00Z" : "2026-01-01 00:00:00";
 
         return "{"
-                + "\"deviceId\":\"device-001\","
+                + "\"deviceId\":\"" + deviceId + "\","
                 + "\"deviceTypeId\":\"" + deviceTypeId + "\","
                 + "\"messageType\":\"" + messageType + "\","
                 + "\"timestamp\":\"" + timestamp + "\","
@@ -222,6 +240,12 @@ public class HttpIngressSmokeRunner {
                 + "}"
                 + "}";
         store.put(key, schemaJson);
+
+        String sampleSchemaVersion = System.getProperty("ai.schema.sample.schemaVersion", schemaVersion);
+        String sampleMessageType = System.getProperty("ai.schema.sample.messageType", "EVENT");
+        String sampleDeviceTypeId = System.getProperty("ai.schema.sample.deviceTypeId", "SENSOR");
+        SchemaKey sampleKey = new SchemaKey(sampleSchemaVersion, sampleMessageType, sampleDeviceTypeId);
+        store.put(sampleKey, schemaJson);
         return store;
     }
 
