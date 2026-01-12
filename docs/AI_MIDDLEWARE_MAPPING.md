@@ -20,20 +20,25 @@
 - device_id
 - device-id
 - device
+- deviceSerial
+- device_serial
 
 ### deviceTypeId
 - device_type_id
 - device_type
 - device-type
+- deviceType
 
 ### eventId
 - event_id
 - event-id
 - event
+- evtId
 
 ### timestamp
 - eventTime
 - event_time
+- event_timestamp
 - time
 - ts
 
@@ -46,10 +51,12 @@
 ### protocolVersion
 - protocol_version
 - protocol
+- protocol_ver
 
 ### schemaVersion
 - schema_version
 - schema
+- schema_ver
 
 ## 3) 운영 원칙
 - 표준 키가 있으면 별칭 값은 무시합니다.
