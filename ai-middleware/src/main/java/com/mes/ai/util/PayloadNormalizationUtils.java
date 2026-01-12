@@ -34,12 +34,12 @@ public final class PayloadNormalizationUtils {
         }
         Map<String, Object> normalized = new LinkedHashMap<>(payload);
 
-        copyIfMissing(normalized, "deviceId", payload, "device_id", "device-id", "device");
-        copyIfMissing(normalized, "deviceTypeId", payload, "device_type_id", "device_type", "device-type");
-        copyIfMissing(normalized, "eventId", payload, "event_id", "event-id", "event");
-        copyIfMissing(normalized, "timestamp", payload, "eventTime", "event_time", "time", "ts");
-        copyIfMissing(normalized, "protocolVersion", payload, "protocol_version", "protocol");
-        copyIfMissing(normalized, "schemaVersion", payload, "schema_version", "schema");
+        copyIfMissing(normalized, "deviceId", payload, "device_id", "device-id", "device", "deviceSerial", "device_serial");
+        copyIfMissing(normalized, "deviceTypeId", payload, "device_type_id", "device_type", "device-type", "deviceType");
+        copyIfMissing(normalized, "eventId", payload, "event_id", "event-id", "event", "evtId");
+        copyIfMissing(normalized, "timestamp", payload, "eventTime", "event_time", "event_timestamp", "time", "ts");
+        copyIfMissing(normalized, "protocolVersion", payload, "protocol_version", "protocol", "protocol_ver");
+        copyIfMissing(normalized, "schemaVersion", payload, "schema_version", "schema", "schema_ver");
         copyIfMissing(normalized, "messageType", payload, "message_type", "type", "msgType", "msg_type");
 
         return normalized;

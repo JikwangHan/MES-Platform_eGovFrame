@@ -81,6 +81,12 @@ public class HttpIngressSmokeRunner {
                 buildPayload(true, defaultSchemaVersion, defaultDeviceTypeId, defaultMessageType, "device-001"),
                 storeService, quarantineService, unknownService);
 
+        // 목적: 별칭 키를 사용한 입력이 표준 키로 정규화되는지 확인합니다.
+        // 이유: 장비별 키 이름 차이로 인한 검증 실패를 줄이기 위함입니다.
+        runCase("별칭 매핑 케이스", port, path,
+                buildAliasPayload(defaultSchemaVersion, defaultDeviceTypeId, defaultMessageType, "device-001"),
+                storeService, quarantineService, unknownService);
+
         // 목적: 장비 샘플 케이스 요청을 보내 확장 입력을 확인합니다.
         // 이유: 장비별 키/타입이 달라도 정상 저장되는지 확인하기 위함입니다.
         String sampleSchemaVersion = System.getProperty("ai.schema.sample.schemaVersion", defaultSchemaVersion);
@@ -166,6 +172,29 @@ public class HttpIngressSmokeRunner {
                 + "\"eventId\":\"" + eventId + "\","
                 + "\"protocolVersion\":\"1.0\","
                 + "\"schemaVersion\":\"" + schemaVersion + "\""
+                + "}";
+    }
+
+    /**
+     * 목적: 별칭 키 기반 payload를 생성합니다.
+     * 기능: 표준 키 대신 별칭 키로 값을 구성합니다.
+     * 이유: 정규화 단계의 키 매핑이 동작하는지 확인하기 위함입니다.
+     * 유지보수: 별칭 키가 추가되면 이 메서드도 동기화합니다.
+     */
+    private static String buildAliasPayload(
+            String schemaVersion,
+            String deviceTypeId,
+            String messageType,
+            String deviceId
+    ) {
+        return "{"
+                + "\"deviceSerial\":\"" + deviceId + "\","
+                + "\"deviceType\":\"" + deviceTypeId + "\","
+                + "\"msg_type\":\"" + messageType + "\","
+                + "\"event_timestamp\":\"2026-01-01T00:00:00Z\","
+                + "\"evtId\":\"evt-102\","
+                + "\"protocol_ver\":\"1.0\","
+                + "\"schema_ver\":\"" + schemaVersion + "\""
                 + "}";
     }
 
