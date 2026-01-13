@@ -79,6 +79,10 @@ logging.basicConfig(
 
 @dataclass
 class Envelope:
+    """표준 메시지(Envelope) 구조를 표현합니다.
+
+    목적: Go 본 구현과 동일한 필드 구조로 PoC 전송 형식을 검증합니다.
+    """
     protocolVersion: str
     schemaVersion: str
     messageType: str  # Telemetry / Event / Command / Ack
@@ -87,11 +91,15 @@ class Envelope:
     payload: Dict[str, Any]
 
     def to_json(self) -> str:
+        """Envelope를 JSON 문자열로 변환합니다."""
         return json.dumps(self.__dict__, ensure_ascii=False)
 
 
 def _iso_timestamp() -> str:
-    # PoC 목적: 간단히 UTC ISO8601 사용 (타임존 포함 여부는 향후 합의)
+    """ISO8601 타임스탬프를 생성합니다.
+
+    목적: 메시지 수집 시점을 표준 형식으로 기록합니다.
+    """
     return datetime.now(timezone.utc).isoformat()
 
 
@@ -127,6 +135,7 @@ def read_modbus() -> Dict[str, Any]:
 
 
 def build_telemetry_envelope(device_id: str, payload: Dict[str, Any]) -> Envelope:
+    """Telemetry 타입의 Envelope를 생성합니다."""
     return Envelope(
         protocolVersion=PROTOCOL_VERSION,
         schemaVersion=SCHEMA_VERSION,
@@ -138,6 +147,10 @@ def build_telemetry_envelope(device_id: str, payload: Dict[str, Any]) -> Envelop
 
 
 def send_via_mqtt(envelope: Envelope) -> None:
+    """MQTT로 Envelope를 전송합니다.
+
+    목적: 브로커 연결 및 발행 성공 여부를 PoC 단계에서 확인합니다.
+    """
     if not MQTT_ENABLED:
         logging.info("MQTT 전송 비활성화(MQTT_ENABLED=False)")
         return
@@ -158,6 +171,10 @@ def send_via_mqtt(envelope: Envelope) -> None:
 
 
 def send_via_rest(envelope: Envelope) -> None:
+    """REST로 Envelope를 전송합니다.
+
+    목적: HTTP 기반 전송 경로도 함께 검증할 수 있도록 합니다.
+    """
     if not REST_ENABLED:
         logging.info("REST 전송 비활성화(REST_ENABLED=False)")
         return
