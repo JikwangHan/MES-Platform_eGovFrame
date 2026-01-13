@@ -48,3 +48,20 @@ java -cp "ai-middleware/target/classes;$((Get-Content -Raw ai-middleware/target/
 ```powershell
 java "-Dai.viewer.decisions.defaultSort=reasonAsc" "-Dai.viewer.decisions.defaultPageSize=20" -cp $cp com.mes.ai.viewer.ViewerServiceRunner
 ```
+
+## Viewer 실행 템플릿(복붙용)
+아래 템플릿은 Ingress/UI 포트와 기본 정렬/페이지 크기를 한 번에 지정합니다.
+```powershell
+$deps = Get-Content -Raw ai-middleware/target/classpath.txt
+$cp = "ai-middleware/target/classes;$deps"
+
+& java @(
+  "-Dfile.encoding=UTF-8",
+  "-Dai.viewer.ingressPort=18091",
+  "-Dai.viewer.uiPort=18092",
+  "-Dai.viewer.decisions.defaultSort=timeDesc",
+  "-Dai.viewer.decisions.defaultPageSize=50",
+  "-cp", $cp,
+  "com.mes.ai.viewer.ViewerServiceRunner"
+)
+```
