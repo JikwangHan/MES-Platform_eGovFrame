@@ -21,6 +21,8 @@ var (
 	brokerFlag = flag.String("mqtt-broker", "", "MQTT 브로커 주소 (예: tcp://localhost:1883)")
 )
 
+// Config는 게이트웨이 전체 설정의 루트 구조체입니다.
+// 목적: 장비/전송/포트 설정을 한 곳에서 일관되게 관리합니다.
 type Config struct {
 	GatewayID  string         `json:"gateway_id"`
 	DeviceName string         `json:"device_name"`
@@ -30,6 +32,8 @@ type Config struct {
 	LoadedFrom string
 }
 
+// DeviceConfig는 장비별 통신 정보와 센서 목록을 정의합니다.
+// 목적: 장비마다 주소/타임아웃/주기를 독립적으로 관리하기 위함입니다.
 type DeviceConfig struct {
 	Name         string         `json:"name"`
 	Type         string         `json:"type"`
@@ -40,6 +44,8 @@ type DeviceConfig struct {
 	Sensors      []SensorConfig `json:"sensors"`
 }
 
+// SensorConfig는 센서별 주소와 스케일/주기를 정의합니다.
+// 목적: 동일 장비 내에서도 센서별 주기를 분리하여 성능을 최적화합니다.
 type SensorConfig struct {
 	Name     string  `json:"name"`
 	Address  uint16  `json:"address"`
@@ -47,16 +53,22 @@ type SensorConfig struct {
 	Interval int     `json:"interval"` // 센서별 개별 수집 주기 (초)
 }
 
+// MQTTConfig는 전송 브로커 정보를 정의합니다.
+// 유지보수 관점: 인증/TLS 등의 확장 필드를 추가해도 구조를 유지합니다.
 type MQTTConfig struct {
 	Broker   string `json:"broker"`
 	Topic    string `json:"topic"`
 	ClientID string `json:"client_id"`
 }
 
+// PortsConfig는 외부 노출 포트를 정의합니다.
+// 목적: 운영 환경별 포트 충돌을 쉽게 회피하도록 설정화합니다.
 type PortsConfig struct {
 	HealthCheck int `json:"health_check"`
 }
 
+// LoadConfig는 파일/환경/CLI를 순서대로 병합하여 최종 설정을 만듭니다.
+// 목적: 운영 환경별 설정 변경을 코드 수정 없이 적용하기 위함입니다.
 func LoadConfig(path string) (*Config, error) {
 	cfg := &Config{LoadedFrom: "Default(File)"}
 
