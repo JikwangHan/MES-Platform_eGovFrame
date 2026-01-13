@@ -398,6 +398,14 @@ public class ViewerHttpServer {
                       color: var(--text);
                       border: 1px solid #344258;
                     }
+                    select, input {
+                      background: #0d121a;
+                      color: var(--text);
+                      border: 1px solid #2b3547;
+                      border-radius: 8px;
+                      padding: 6px 10px;
+                      font-size: 12px;
+                    }
                     pre {
                       background: #0d121a;
                       border-radius: 10px;
@@ -447,12 +455,28 @@ public class ViewerHttpServer {
                         <button id="refreshBtn">새로고침</button>
                         <button class="secondary" id="copyBtn">JSON 복사</button>
                       </div>
+                      <div class="toolbar" id="decisionFilters" style="display:none;">
+                        <select id="decisionSelect">
+                          <option value="">결정 전체</option>
+                          <option value="STANDARD">STANDARD</option>
+                          <option value="QUARANTINE">QUARANTINE</option>
+                          <option value="UNKNOWN">UNKNOWN</option>
+                        </select>
+                        <input id="reasonCodeInput" type="text" placeholder="reasonCode 검색" />
+                        <input id="textSearchInput" type="text" placeholder="상세 텍스트 검색" />
+                        <button class="secondary" id="clearFilterBtn">필터 초기화</button>
+                      </div>
                       <div id="contentArea"></div>
                     </section>
                   </main>
                   <script>
                     const tabs = document.querySelectorAll('.tab');
                     const contentArea = document.getElementById('contentArea');
+                    const decisionFilters = document.getElementById('decisionFilters');
+                    const decisionSelect = document.getElementById('decisionSelect');
+                    const reasonCodeInput = document.getElementById('reasonCodeInput');
+                    const textSearchInput = document.getElementById('textSearchInput');
+                    const clearFilterBtn = document.getElementById('clearFilterBtn');
                     const counts = {
                       raw: document.getElementById('rawCount'),
                       standard: document.getElementById('standardCount'),
@@ -461,6 +485,7 @@ public class ViewerHttpServer {
                     };
                     let currentTab = 'raw';
                     let latestPayload = null;
+                    let latestData = null;
 
                     const fetchJson = async (path) => {
                       const res = await fetch(path);
@@ -469,6 +494,7 @@ public class ViewerHttpServer {
                     };
 
                     const renderContent = (data) => {
+                      latestData = data;
                       if (!data || data.length === 0) {
                         contentArea.innerHTML = '<div class="empty">데이터가 없습니다. 먼저 /ingest로 데이터를 전송하세요.</div>';
                         latestPayload = null;
@@ -477,6 +503,35 @@ public class ViewerHttpServer {
                       const pretty = JSON.stringify(data, null, 2);
                       contentArea.innerHTML = '<pre>' + pretty + '</pre>';
                       latestPayload = pretty;
+                    };
+
+                    const applyDecisionFilters = () => {
+                      if (currentTab !== 'decisions') {
+                        return;
+                      }
+                      if (!latestData || !Array.isArray(latestData)) {
+                        return;
+                      }
+                      const decisionValue = decisionSelect.value.trim();
+                      const reasonValue = reasonCodeInput.value.trim().toLowerCase();
+                      const textValue = textSearchInput.value.trim().toLowerCase();
+                      const filtered = latestData.filter(item => {
+                        if (!item) return false;
+                        if (decisionValue && String(item.decision || '').toUpperCase() !== decisionValue) {
+                          return false;
+                        }
+                        if (reasonValue && String(item.reasonCode || '').toLowerCase().indexOf(reasonValue) < 0) {
+                          return false;
+                        }
+                        if (textValue) {
+                          const blob = JSON.stringify(item).toLowerCase();
+                          if (blob.indexOf(textValue) < 0) {
+                            return false;
+                          }
+                        }
+                        return true;
+                      });
+                      renderContent(filtered);
                     };
 
                     const refreshAll = async () => {
@@ -488,6 +543,9 @@ public class ViewerHttpServer {
                         counts.unknown.textContent = summary.unknownCount;
                         const data = await fetchJson('/api/' + currentTab);
                         renderContent(data);
+                        if (currentTab === 'decisions') {
+                          applyDecisionFilters();
+                        }
                       } catch (err) {
                         contentArea.innerHTML = '<div class="empty danger">API 연결 실패: ' + err.message + '</div>';
                       }
@@ -498,8 +556,12 @@ public class ViewerHttpServer {
                         tabs.forEach(t => t.classList.remove('active'));
                         tab.classList.add('active');
                         currentTab = tab.dataset.tab;
+                        decisionFilters.style.display = currentTab === 'decisions' ? 'flex' : 'none';
                         const data = await fetchJson('/api/' + currentTab);
                         renderContent(data);
+                        if (currentTab === 'decisions') {
+                          applyDecisionFilters();
+                        }
                       });
                     });
 
@@ -507,6 +569,15 @@ public class ViewerHttpServer {
                     document.getElementById('copyBtn').addEventListener('click', () => {
                       if (!latestPayload) return;
                       navigator.clipboard.writeText(latestPayload);
+                    });
+                    [decisionSelect, reasonCodeInput, textSearchInput].forEach(input => {
+                      input.addEventListener('input', applyDecisionFilters);
+                    });
+                    clearFilterBtn.addEventListener('click', () => {
+                      decisionSelect.value = '';
+                      reasonCodeInput.value = '';
+                      textSearchInput.value = '';
+                      applyDecisionFilters();
                     });
 
                     refreshAll();
