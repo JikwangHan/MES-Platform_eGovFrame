@@ -34,3 +34,23 @@
 1) 개발/초기: warn (미등록 스키마 상황을 추적)
 2) 안정화: fail (미등록 스키마 차단)
 3) 긴급 대응: pass (임시 허용)
+
+## 5) 기본 검증 실패 사유 코드(요약)
+아래 코드는 BasicValidator 기준으로 대표적인 실패 사유를 요약한 것입니다.
+운영 로그/격리 분석 시 이 목록을 기준으로 원인을 분류합니다.
+
+- INGRESS_PAYLOAD_EMPTY: 원본 데이터 없음
+- NORMALIZE_PARSE_ERROR: 정규화 결과가 비어 있음
+- VALIDATION_MISSING_FIELD:messageType
+- VALIDATION_MISSING_FIELD:deviceId
+- VALIDATION_MISSING_FIELD:timestamp
+- VALIDATION_MISSING_FIELD:eventId
+- VALIDATION_MISSING_FIELD:protocolVersion
+- VALIDATION_MISSING_FIELD:schemaVersion
+- VALIDATION_INVALID_TYPE:eventId 길이 부족
+- VALIDATION_INVALID_TYPE:protocolVersion 형식 오류
+- VALIDATION_INVALID_TYPE:schemaVersion 형식 오류
+- VALIDATION_INVALID_TYPE:timestamp 형식 오류
+- CLASSIFICATION_MISSING_DEVICE_TYPE:분류 결과 없음
+- CLASSIFICATION_MISSING_DEVICE_TYPE:deviceTypeId 없음
+- CLASSIFICATION_LOW_CONFIDENCE:기준값 미만
