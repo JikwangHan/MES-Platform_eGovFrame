@@ -13,6 +13,7 @@ import com.mes.ai.pipeline.Classifier;
 import com.mes.ai.pipeline.Normalizer;
 import com.mes.ai.pipeline.Validator;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * 파이프라인 전체 흐름을 오케스트레이션하는 기본 클래스입니다.
@@ -22,6 +23,10 @@ import java.util.Map;
  * 유지보수 포인트: 예외 처리, 로깅, 멱등성 처리를 여기에 집중적으로 추가합니다.
  */
 public class PipelineOrchestrator {
+    /** 운영 로그 표준 출력용 로거입니다. */
+    private static final Logger LOGGER = Logger.getLogger(PipelineOrchestrator.class.getName());
+    /** 파이프라인 결정 로그 이벤트 이름입니다. */
+    private static final String LOG_EVENT_PIPELINE = "PIPELINE_DECISION";
     /** 기본 허용 콘텐츠 타입 힌트 목록입니다. */
     private static final String[] DEFAULT_ALLOWED_CONTENT_TYPES = {
             "json",
@@ -117,7 +122,9 @@ public class PipelineOrchestrator {
     private void processInternal(RawEnvelope rawEnvelope, boolean skipScan, ScanResult scanSnapshot) {
         if (rawEnvelope == null) {
             // 원본 자체가 없으면 즉시 격리하여 후속 오류를 막습니다.
-            quarantineService.quarantine(null, failResult("INGRESS_PAYLOAD_EMPTY:원본 데이터가 없습니다."), null);
+            ValidationResult failure = failResult("INGRESS_PAYLOAD_EMPTY:원본 데이터가 없습니다.");
+            quarantineService.quarantine(null, failure, null);
+            logDecision("QUARANTINE", null, failure.getReason(), null);
             return;
         }
         // 원본 데이터는 반드시 보관해야 하므로 가장 먼저 저장합니다.
@@ -125,7 +132,9 @@ public class PipelineOrchestrator {
 
         if (isEmptyPayload(rawEnvelope)) {
             // payload가 비어 있으면 파싱/검증 전에 격리합니다.
-            quarantineService.quarantine(rawEnvelope, failResult("INGRESS_PAYLOAD_EMPTY:payload가 비어 있습니다."), scanSnapshot);
+            ValidationResult failure = failResult("INGRESS_PAYLOAD_EMPTY:payload가 비어 있습니다.");
+            quarantineService.quarantine(rawEnvelope, failure, scanSnapshot);
+            logDecision("QUARANTINE", rawEnvelope, failure.getReason(), scanSnapshot);
             return;
         }
 
@@ -135,14 +144,18 @@ public class PipelineOrchestrator {
             scanResult = securityScanService.scan(buildScanRequest(rawEnvelope));
             if (isScanBlocked(scanResult)) {
                 // 스캔 실패/감염 상태는 Unknown Ingest로 격리 저장합니다.
-                unknownIngestService.save(buildUnknownRecord(rawEnvelope, scanResult, "SECURITY_SCAN_BLOCKED"));
+                String reason = "SECURITY_SCAN_BLOCKED";
+                unknownIngestService.save(buildUnknownRecord(rawEnvelope, scanResult, reason));
+                logDecision("UNKNOWN", rawEnvelope, reason, scanResult);
                 return;
             }
         }
 
         // 미정의 통신/비정형 데이터로 판단되면 파이프라인에 진입시키지 않습니다.
         if (isUnknownIngress(rawEnvelope)) {
-            unknownIngestService.save(buildUnknownRecord(rawEnvelope, scanResult, "UNKNOWN_INGEST"));
+            String reason = "UNKNOWN_INGEST";
+            unknownIngestService.save(buildUnknownRecord(rawEnvelope, scanResult, reason));
+            logDecision("UNKNOWN", rawEnvelope, reason, scanResult);
             return;
         }
 
@@ -155,6 +168,7 @@ public class PipelineOrchestrator {
             // 경고성 통과는 표준 저장과 함께 Unknown 기록을 남겨 추적성을 확보합니다.
             if (isValidationWarning(validationResult)) {
                 unknownIngestService.save(buildUnknownRecord(rawEnvelope, scanResult, validationResult.getReason()));
+                logDecision("UNKNOWN", rawEnvelope, validationResult.getReason(), scanResult);
             }
             /*
              * 목적: 검증 통과 데이터를 표준 Envelope로 변환해 저장합니다.
@@ -178,11 +192,13 @@ public class PipelineOrchestrator {
 
             // 검증을 통과한 표준 데이터만 저장합니다.
             storeService.storeStandard(envelope);
+            logDecision("STANDARD", rawEnvelope, "VALIDATION_PASS", scanResult);
             return;
         }
 
         // 실패 데이터는 사유와 함께 격리하여 재처리에 활용합니다.
         quarantineService.quarantine(rawEnvelope, validationResult, scanResult);
+        logDecision("QUARANTINE", rawEnvelope, validationResult.getReason(), scanResult);
     }
 
     /**
@@ -391,5 +407,76 @@ public class PipelineOrchestrator {
         }
         record.setQuarantineReason(reason);
         return record;
+    }
+
+    /**
+     * 목적: 운영 로그 표준 형식으로 파이프라인 결정 결과를 남깁니다.
+     * 기능: 결정 유형/사유/기본 메타 정보를 한 줄로 기록합니다.
+     * 이유: 운영에서 원인 분석과 통계 집계를 쉽게 하기 위함입니다.
+     * 유지보수: 로그 포맷이 바뀌면 이 메서드를 수정합니다.
+     */
+    private void logDecision(String decision, RawEnvelope rawEnvelope, String reason, ScanResult scanResult) {
+        ReasonParts parts = splitReason(reason);
+        String message = "event=" + LOG_EVENT_PIPELINE
+                + " decision=" + safeText(decision)
+                + " rawId=" + safeText(rawEnvelope == null ? null : rawEnvelope.getId())
+                + " ingressType=" + safeText(rawEnvelope == null ? null : rawEnvelope.getIngressType())
+                + " contentType=" + safeText(rawEnvelope == null ? null : rawEnvelope.getContentType())
+                + " reasonCode=" + safeText(parts.code)
+                + " reasonDetail=" + safeText(parts.detail)
+                + " scanStatus=" + safeText(scanResult == null ? null : scanResult.getStatus());
+        LOGGER.info(message);
+    }
+
+    /**
+     * 목적: 사유 문자열을 코드/상세로 분리합니다.
+     * 기능: 콜론 기준으로 reasonCode와 reasonDetail을 나눕니다.
+     * 이유: 운영 로그에서 집계 가능한 코드 값을 확보하기 위함입니다.
+     * 유지보수: 사유 포맷이 바뀌면 분리 규칙을 수정합니다.
+     */
+    private ReasonParts splitReason(String reason) {
+        if (reason == null || reason.trim().isEmpty()) {
+            return new ReasonParts("UNKNOWN", "사유 없음");
+        }
+        int index = reason.indexOf(':');
+        if (index < 0) {
+            return new ReasonParts(reason.trim(), null);
+        }
+        String code = reason.substring(0, index).trim();
+        String detail = reason.substring(index + 1).trim();
+        return new ReasonParts(code.isEmpty() ? "UNKNOWN" : code, detail.isEmpty() ? null : detail);
+    }
+
+    /**
+     * 목적: 로그에 안전한 텍스트만 남기도록 정리합니다.
+     * 기능: null/공백을 "-"로 치환하고 공백 문자를 언더스코어로 바꿉니다.
+     * 이유: 로그 파싱 시 필드 구분이 깨지는 것을 방지하기 위함입니다.
+     * 유지보수: 포맷 정책이 바뀌면 이 메서드를 수정합니다.
+     */
+    private String safeText(Object value) {
+        if (value == null) {
+            return "-";
+        }
+        String text = String.valueOf(value).trim();
+        if (text.isEmpty()) {
+            return "-";
+        }
+        return text.replaceAll("\\s+", "_");
+    }
+
+    /**
+     * 목적: 사유 분리 결과를 보관합니다.
+     * 기능: 코드/상세를 묶어 전달합니다.
+     * 이유: 로그 출력 시 일관된 필드 구성을 유지하기 위함입니다.
+     * 유지보수: 사유 구조가 바뀌면 이 클래스도 수정합니다.
+     */
+    private static final class ReasonParts {
+        private final String code;
+        private final String detail;
+
+        private ReasonParts(String code, String detail) {
+            this.code = code;
+            this.detail = detail;
+        }
     }
 }
