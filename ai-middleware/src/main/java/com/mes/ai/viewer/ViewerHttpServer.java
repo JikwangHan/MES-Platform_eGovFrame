@@ -464,7 +464,23 @@ public class ViewerHttpServer {
                         </select>
                         <input id="reasonCodeInput" type="text" placeholder="reasonCode 검색" />
                         <input id="textSearchInput" type="text" placeholder="상세 텍스트 검색" />
+                        <select id="sortSelect">
+                          <option value="decisionAsc">결정 오름차순</option>
+                          <option value="decisionDesc">결정 내림차순</option>
+                          <option value="reasonAsc">사유코드 오름차순</option>
+                          <option value="reasonDesc">사유코드 내림차순</option>
+                        </select>
+                        <select id="pageSizeSelect">
+                          <option value="10">10개</option>
+                          <option value="20" selected>20개</option>
+                          <option value="50">50개</option>
+                        </select>
                         <button class="secondary" id="clearFilterBtn">필터 초기화</button>
+                      </div>
+                      <div class="toolbar" id="decisionPaging" style="display:none;">
+                        <button class="secondary" id="prevPageBtn">이전</button>
+                        <span id="pageInfo">1 / 1</span>
+                        <button class="secondary" id="nextPageBtn">다음</button>
                       </div>
                       <div id="contentArea"></div>
                     </section>
@@ -473,10 +489,16 @@ public class ViewerHttpServer {
                     const tabs = document.querySelectorAll('.tab');
                     const contentArea = document.getElementById('contentArea');
                     const decisionFilters = document.getElementById('decisionFilters');
+                    const decisionPaging = document.getElementById('decisionPaging');
                     const decisionSelect = document.getElementById('decisionSelect');
                     const reasonCodeInput = document.getElementById('reasonCodeInput');
                     const textSearchInput = document.getElementById('textSearchInput');
+                    const sortSelect = document.getElementById('sortSelect');
+                    const pageSizeSelect = document.getElementById('pageSizeSelect');
                     const clearFilterBtn = document.getElementById('clearFilterBtn');
+                    const prevPageBtn = document.getElementById('prevPageBtn');
+                    const nextPageBtn = document.getElementById('nextPageBtn');
+                    const pageInfo = document.getElementById('pageInfo');
                     const counts = {
                       raw: document.getElementById('rawCount'),
                       standard: document.getElementById('standardCount'),
@@ -486,6 +508,7 @@ public class ViewerHttpServer {
                     let currentTab = 'raw';
                     let latestPayload = null;
                     let latestData = null;
+                    let pageIndex = 1;
 
                     const fetchJson = async (path) => {
                       const res = await fetch(path);
@@ -515,7 +538,7 @@ public class ViewerHttpServer {
                       const decisionValue = decisionSelect.value.trim();
                       const reasonValue = reasonCodeInput.value.trim().toLowerCase();
                       const textValue = textSearchInput.value.trim().toLowerCase();
-                      const filtered = latestData.filter(item => {
+                      let filtered = latestData.filter(item => {
                         if (!item) return false;
                         if (decisionValue && String(item.decision || '').toUpperCase() !== decisionValue) {
                           return false;
@@ -531,7 +554,36 @@ public class ViewerHttpServer {
                         }
                         return true;
                       });
-                      renderContent(filtered);
+                      filtered = applyDecisionSort(filtered);
+                      const pageSize = parseInt(pageSizeSelect.value, 10);
+                      const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+                      if (pageIndex > pageCount) {
+                        pageIndex = pageCount;
+                      }
+                      const start = (pageIndex - 1) * pageSize;
+                      const end = start + pageSize;
+                      const pageItems = filtered.slice(start, end);
+                      pageInfo.textContent = pageIndex + " / " + pageCount;
+                      prevPageBtn.disabled = pageIndex <= 1;
+                      nextPageBtn.disabled = pageIndex >= pageCount;
+                      renderContent(pageItems);
+                    };
+
+                    const applyDecisionSort = (items) => {
+                      const mode = sortSelect.value;
+                      const sorted = items.slice();
+                      const decisionKey = item => String(item.decision || '');
+                      const reasonKey = item => String(item.reasonCode || '');
+                      if (mode === 'decisionDesc') {
+                        sorted.sort((a, b) => decisionKey(b).localeCompare(decisionKey(a)));
+                      } else if (mode === 'reasonAsc') {
+                        sorted.sort((a, b) => reasonKey(a).localeCompare(reasonKey(b)));
+                      } else if (mode === 'reasonDesc') {
+                        sorted.sort((a, b) => reasonKey(b).localeCompare(reasonKey(a)));
+                      } else {
+                        sorted.sort((a, b) => decisionKey(a).localeCompare(decisionKey(b)));
+                      }
+                      return sorted;
                     };
 
                     const refreshAll = async () => {
@@ -556,10 +608,13 @@ public class ViewerHttpServer {
                         tabs.forEach(t => t.classList.remove('active'));
                         tab.classList.add('active');
                         currentTab = tab.dataset.tab;
-                        decisionFilters.style.display = currentTab === 'decisions' ? 'flex' : 'none';
+                        const showDecisionUi = currentTab === 'decisions';
+                        decisionFilters.style.display = showDecisionUi ? 'flex' : 'none';
+                        decisionPaging.style.display = showDecisionUi ? 'flex' : 'none';
                         const data = await fetchJson('/api/' + currentTab);
                         renderContent(data);
                         if (currentTab === 'decisions') {
+                          pageIndex = 1;
                           applyDecisionFilters();
                         }
                       });
@@ -570,13 +625,26 @@ public class ViewerHttpServer {
                       if (!latestPayload) return;
                       navigator.clipboard.writeText(latestPayload);
                     });
-                    [decisionSelect, reasonCodeInput, textSearchInput].forEach(input => {
+                    [decisionSelect, reasonCodeInput, textSearchInput, sortSelect, pageSizeSelect].forEach(input => {
                       input.addEventListener('input', applyDecisionFilters);
                     });
                     clearFilterBtn.addEventListener('click', () => {
                       decisionSelect.value = '';
                       reasonCodeInput.value = '';
                       textSearchInput.value = '';
+                      sortSelect.value = 'decisionAsc';
+                      pageSizeSelect.value = '20';
+                      pageIndex = 1;
+                      applyDecisionFilters();
+                    });
+                    prevPageBtn.addEventListener('click', () => {
+                      if (pageIndex > 1) {
+                        pageIndex -= 1;
+                        applyDecisionFilters();
+                      }
+                    });
+                    nextPageBtn.addEventListener('click', () => {
+                      pageIndex += 1;
                       applyDecisionFilters();
                     });
 

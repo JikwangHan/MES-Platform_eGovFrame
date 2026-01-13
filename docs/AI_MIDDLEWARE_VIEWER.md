@@ -29,3 +29,8 @@ java -cp "ai-middleware/target/classes;$((Get-Content -Raw ai-middleware/target/
 - 결정 필터: STANDARD/QUARANTINE/UNKNOWN 선택
 - reasonCode 검색: 코드 일부 입력으로 필터링
 - 상세 텍스트 검색: decision 항목 전체를 문자열 검색
+
+## Decisions 탭 정렬/페이징
+- 정렬: 결정/사유 코드 오름차순·내림차순
+- 페이지 크기: 10/20/50 선택
+- 이동: 이전/다음 버튼으로 페이지 이동
