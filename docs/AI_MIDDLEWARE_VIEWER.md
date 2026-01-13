@@ -24,3 +24,8 @@ java -cp "ai-middleware/target/classes;$((Get-Content -Raw ai-middleware/target/
 - reasonDetail: 상세 사유(없으면 "-")
 - rawId/recordId: 원본 또는 Unknown 레코드 식별자
 - ingressType/contentType: 수신 경로/콘텐츠 타입
+
+## Decisions 탭 필터
+- 결정 필터: STANDARD/QUARANTINE/UNKNOWN 선택
+- reasonCode 검색: 코드 일부 입력으로 필터링
+- 상세 텍스트 검색: decision 항목 전체를 문자열 검색
