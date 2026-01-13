@@ -35,3 +35,11 @@ java -cp "ai-middleware/target/classes;$((Get-Content -Raw ai-middleware/target/
 - 페이지 크기: 10/20/50 선택(기본 50)
 - 이동: 이전/다음 버튼으로 페이지 이동
 - 기본 정렬: 시간 최신순(timeDesc)
+
+## 기본값 설정(시스템 속성)
+- ai.viewer.decisions.defaultSort
+  - 기본값: timeDesc
+  - 허용값: decisionAsc/decisionDesc/reasonAsc/reasonDesc/timeDesc/timeAsc/idDesc/idAsc
+- ai.viewer.decisions.defaultPageSize
+  - 기본값: 50
+  - 허용값: 10/20/50

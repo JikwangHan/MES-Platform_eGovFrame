@@ -300,6 +300,8 @@ public class ViewerHttpServer {
      * 유지보수: 로직 변경 시 이 메서드를 수정합니다.
      */
     private String buildViewerHtml() {
+        String defaultSort = resolveDefaultSort();
+        String defaultPageSize = resolveDefaultPageSize();
         return """
                 <!doctype html>
                 <html lang="ko">
@@ -428,7 +430,7 @@ public class ViewerHttpServer {
                     }
                   </style>
                 </head>
-                <body>
+                <body data-default-sort="%s" data-default-page-size="%s">
                   <header>
                     <h1>AI Middleware Viewer</h1>
                     <div class="meta">/api 기반 실시간 상태 확인</div>
@@ -503,6 +505,8 @@ public class ViewerHttpServer {
                     const prevPageBtn = document.getElementById('prevPageBtn');
                     const nextPageBtn = document.getElementById('nextPageBtn');
                     const pageInfo = document.getElementById('pageInfo');
+                    const defaultSort = document.body.dataset.defaultSort || 'timeDesc';
+                    const defaultPageSize = document.body.dataset.defaultPageSize || '50';
                     const counts = {
                       raw: document.getElementById('rawCount'),
                       standard: document.getElementById('standardCount'),
@@ -513,6 +517,9 @@ public class ViewerHttpServer {
                     let latestPayload = null;
                     let latestData = null;
                     let pageIndex = 1;
+
+                    sortSelect.value = defaultSort;
+                    pageSizeSelect.value = defaultPageSize;
 
                     const fetchJson = async (path) => {
                       const res = await fetch(path);
@@ -655,8 +662,8 @@ public class ViewerHttpServer {
                       decisionSelect.value = '';
                       reasonCodeInput.value = '';
                       textSearchInput.value = '';
-                      sortSelect.value = 'timeDesc';
-                      pageSizeSelect.value = '20';
+                      sortSelect.value = defaultSort;
+                      pageSizeSelect.value = defaultPageSize;
                       pageIndex = 1;
                       applyDecisionFilters();
                     });
@@ -676,7 +683,36 @@ public class ViewerHttpServer {
                   </script>
                 </body>
                 </html>
-                """;
+                """.formatted(defaultSort, defaultPageSize);
+    }
+
+    /**
+     * 목적: 기본 정렬 옵션을 안전하게 결정합니다.
+     * 기능: 허용 목록에 없는 값은 기본값으로 대체합니다.
+     * 이유: 잘못된 시스템 속성으로 UI가 깨지는 것을 방지하기 위함입니다.
+     * 유지보수: 정렬 옵션이 늘어나면 허용 목록을 확장합니다.
+     */
+    private String resolveDefaultSort() {
+        String raw = System.getProperty("ai.viewer.decisions.defaultSort", "timeDesc").trim();
+        return switch (raw) {
+            case "decisionAsc", "decisionDesc", "reasonAsc", "reasonDesc",
+                    "timeDesc", "timeAsc", "idDesc", "idAsc" -> raw;
+            default -> "timeDesc";
+        };
+    }
+
+    /**
+     * 목적: 기본 페이지 크기를 안전하게 결정합니다.
+     * 기능: 허용된 크기만 적용하고 그 외는 기본값으로 대체합니다.
+     * 이유: 비정상 값으로 페이지 계산이 깨지는 것을 방지하기 위함입니다.
+     * 유지보수: 허용 크기가 늘어나면 이 메서드를 수정합니다.
+     */
+    private String resolveDefaultPageSize() {
+        String raw = System.getProperty("ai.viewer.decisions.defaultPageSize", "50").trim();
+        return switch (raw) {
+            case "10", "20", "50" -> raw;
+            default -> "50";
+        };
     }
 
     /**
