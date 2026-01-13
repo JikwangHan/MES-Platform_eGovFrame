@@ -8,7 +8,7 @@
       "address": "127.0.0.1:502",
       "slave_id": 1,
       "timeout": 5,
-      "scan_interval": 10, 
+      "scan_interval": 10,
       "sensors": [
         { "name": "Temperature", "address": 0, "scale": 0.1, "interval": 60 },
         { "name": "Humidity", "address": 1, "scale": 0.1, "interval": 60 },
@@ -20,6 +20,16 @@
     "broker": "tcp://localhost:1883",
     "topic": "mes/telemetry",
     "client_id": "edge_gw_01"
+  },
+  "log_api": {
+    "enabled": true,
+    "base_url": "http://localhost:18090",
+    "mode": "mock",
+    "crtfc_key": "TEST-CRTFC-KEY",
+    "use_se": "DO6003",
+    "source_ip": "",
+    "min_interval_sec": 30,
+    "request_timeout_s": 5
   },
   "ports": {
     "health_check": 18080

@@ -41,4 +41,13 @@ rest:
 paths:
   logs: "IoT-Edge-Gateway/logs"
   quarantine: "IoT-Edge-Gateway/quarantine"
+log_api:
+  enabled: false
+  base_url: "http://127.0.0.1:18090"
+  mode: "mock"
+  crtfc_key: "TEST-CRTFC-KEY"
+  use_se: "DO6003"
+  source_ip: ""
+  min_interval_sec: 600
+  request_timeout_s: 5
 

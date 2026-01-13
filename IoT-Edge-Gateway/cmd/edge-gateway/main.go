@@ -32,6 +32,7 @@ import (
 	"github.com/goburrow/modbus"
 
 	"mes-iot-edge/internal/config"
+	"mes-iot-edge/internal/logapi"
 	"mes-iot-edge/internal/logger"
 	"mes-iot-edge/internal/storage"
 )
@@ -40,6 +41,7 @@ import (
 var (
 	startTime    time.Time
 	deviceStatus sync.Map // 장비별 실시간 상태 저장 (thread-safe)
+	logClient    *logapi.Client
 )
 
 // main은 게이트웨이의 전체 라이프사이클을 관리합니다.
@@ -52,7 +54,7 @@ func main() {
 		defer func() { _ = logger.Log.Sync() }()
 	}
 
-	logger.Log.Info("🚀 MES IoT Edge Gateway (Production Mode) 가동")
+	logger.Log.Info("MES IoT Edge Gateway (Production Mode) 가동")
 
 	// 종료 신호를 받아 워커를 정상 종료시키기 위한 컨텍스트입니다.
 	mainCtx, mainCancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -61,7 +63,7 @@ func main() {
 	// 장애 복구(Store & Forward)용 로컬 DB를 초기화합니다.
 	db, err := storage.InitDB("gateway_local.db")
 	if err != nil {
-		logger.Log.Fatalf("❌ DB 연결 실패: %v", err)
+		logger.Log.Fatalf("DB 연결 실패: %v", err)
 	}
 	defer storage.CloseDB(db)
 
@@ -76,7 +78,7 @@ func main() {
 	// 이유: 변경된 설정을 반영하되 기존 워커를 안전하게 종료하기 위함입니다.
 	runCollectors := func() {
 		if currentCancel != nil {
-			logger.Log.Info("🔄 설정 변경 감지: 시스템 리로드 중...")
+			logger.Log.Info("설정 변경 감지: 시스템 리로드 중...")
 			currentCancel()
 			time.Sleep(1 * time.Second)
 		}
@@ -87,9 +89,20 @@ func main() {
 		// 설정 파일을 다시 읽어 장비/센서 구성을 갱신합니다.
 		cfg, err := config.LoadConfig("config/config.json")
 		if err != nil {
-			logger.Log.Errorf("❌ 설정 로드 실패: %v", err)
+			logger.Log.Errorf("설정 로드 실패: %v", err)
 			return
 		}
+
+		// 로그 수집 API 클라이언트를 설정에 맞춰 초기화합니다.
+		logClient = logapi.NewClient(logapi.Config{
+			Enabled:         cfg.LogAPI.Enabled,
+			BaseURL:         cfg.LogAPI.BaseURL,
+			CrtfcKey:        cfg.LogAPI.CrtfcKey,
+			UseSe:           cfg.LogAPI.UseSe,
+			SourceIP:        cfg.LogAPI.SourceIP,
+			MinIntervalSec:  cfg.LogAPI.MinIntervalSec,
+			RequestTimeoutS: cfg.LogAPI.RequestTimeoutS,
+		})
 
 		// MQTT 연결은 공용으로 사용하므로 재사용합니다.
 		if globalClient == nil || !globalClient.IsConnected() {
@@ -105,7 +118,7 @@ func main() {
 		// 전송 실패 데이터 복구 루프를 함께 기동합니다.
 		go retryUnsentData(reloadCtx, globalClient, db, cfg.MQTT.Topic)
 
-		logger.Log.Infof("✅ 운영 엔진 가동 완료 (장치: %d대)", len(cfg.Devices))
+		logger.Log.Infof("운영 엔진 가동 완료 (장치: %d대)", len(cfg.Devices))
 	}
 
 	runCollectors()
@@ -204,7 +217,7 @@ func sensorWorker(ctx context.Context, mu *sync.Mutex, devName string, s config.
 				currentErrMsg := err.Error()
 				// [로그 억제] 이전과 동일한 에러라면 로그를 남기지 않음
 				if currentErrMsg != lastErrMsg {
-					logger.Log.Errorf("❌ [%s:%s] 수집 실패: %v", devName, s.Name, err)
+					logger.Log.Errorf("[%s:%s] 수집 실패: %v", devName, s.Name, err)
 					lastErrMsg = currentErrMsg
 					deviceStatus.Store(devName, "Error: "+currentErrMsg)
 				}
@@ -213,7 +226,7 @@ func sensorWorker(ctx context.Context, mu *sync.Mutex, devName string, s config.
 
 			// 성공 시 에러 상태 초기화 및 로그 출력
 			if lastErrMsg != "" {
-				logger.Log.Infof("✅ [%s:%s] 연결 복구됨", devName, s.Name)
+				logger.Log.Infof("[%s:%s] 연결 복구됨", devName, s.Name)
 				lastErrMsg = ""
 				deviceStatus.Store(devName, "Running")
 			}
@@ -277,7 +290,20 @@ func publishData(cfg *config.Config, client mqtt.Client, devName string, sensors
 	if client.IsConnected() {
 		token := client.Publish(cfg.MQTT.Topic, 0, false, js)
 		if token.Wait() && token.Error() == nil {
-			logger.Log.Infof("📥 [%s] 전송 완료", devName)
+			logger.Log.Infof("[%s] 전송 완료", devName)
+			if logClient != nil {
+				// 로그 전송은 비동기로 처리하여 수집 주기 지연을 방지합니다.
+				go func() {
+					sent, err := logClient.TrySend(context.Background(), logTimestamp(), cfg.GatewayID, len(js))
+					if err != nil {
+						logger.Log.Warnf("로그 API 전송 실패: %v", err)
+						return
+					}
+					if sent {
+						logger.Log.Infof("로그 API 전송 완료")
+					}
+				}()
+			}
 			return
 		}
 	}
@@ -323,7 +349,7 @@ func retryUnsentData(ctx context.Context, client mqtt.Client, db *sql.DB, topic 
 				js, _ := json.Marshal(payload)
 				if token := client.Publish(topic, 0, false, js); token.Wait() && token.Error() == nil {
 					storage.DeleteData(db, data.ID)
-					logger.Log.Infof("🔁 복구 전송 완료: device=%s sensor=%s", data.DeviceName, data.SensorName)
+					logger.Log.Infof("복구 전송 완료: device=%s sensor=%s", data.DeviceName, data.SensorName)
 					time.Sleep(100 * time.Millisecond)
 				} else {
 					break
@@ -364,3 +390,11 @@ func brokerReachable(broker string) bool {
 	_ = conn.Close()
 	return true
 }
+
+
+// logTimestamp는 로그 API 규격(YYYY-MM-DD HH:MI:SS.SSS)에 맞는 시간을 반환합니다.
+// 목적: 스마트공장 로그 수집 포맷과 1:1로 맞추기 위함입니다.
+func logTimestamp() string {
+	return time.Now().Format("2006-01-02 15:04:05.000")
+}
+

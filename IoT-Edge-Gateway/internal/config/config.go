@@ -28,6 +28,7 @@ type Config struct {
 	DeviceName string         `json:"device_name"`
 	Devices    []DeviceConfig `json:"devices"`
 	MQTT       MQTTConfig     `json:"mqtt"`
+	LogAPI     LogAPIConfig   `json:"log_api"`
 	Ports      PortsConfig    `json:"ports"`
 	LoadedFrom string
 }
@@ -65,6 +66,19 @@ type MQTTConfig struct {
 // 목적: 운영 환경별 포트 충돌을 쉽게 회피하도록 설정화합니다.
 type PortsConfig struct {
 	HealthCheck int `json:"health_check"`
+}
+
+// LogAPIConfig는 사용 로그 수집 API 연동 설정입니다.
+// 목적: 가상/실서버 전환과 전송 정책을 설정으로 분리합니다.
+type LogAPIConfig struct {
+	Enabled         bool   `json:"enabled"`
+	BaseURL         string `json:"base_url"`
+	Mode            string `json:"mode"` // mock | prod
+	CrtfcKey        string `json:"crtfc_key"`
+	UseSe           string `json:"use_se"`            // DO6001~DO6999
+	SourceIP        string `json:"source_ip"`         // 미지정 시 자동 추정
+	MinIntervalSec  int    `json:"min_interval_sec"`  // 최소 전송 간격(초)
+	RequestTimeoutS int    `json:"request_timeout_s"` // 전송 타임아웃(초)
 }
 
 // LoadConfig는 파일/환경/CLI를 순서대로 병합하여 최종 설정을 만듭니다.
