@@ -27,7 +27,7 @@ IoT-Edge-Gateway PoC 결과 보고서
 4) 오류 테스트
 - 타임아웃: 성공 (address=10.255.255.1:502, i/o timeout 확인)
 - 잘못된 주소: 성공(Timeout 기반) (address=9999, 시뮬레이터 특성상 timeout으로 확인)
-- 인증 실패: 보류 (MQTT 인증 미사용 환경)
+- 인증 실패: 성공 (브로커 1885 + 잘못된 비밀번호, not Authorized 확인)
 - MQTT 단절(Store & Forward): 성공 (DB 저장 및 복구 로그 확인)
 
 5) 빌드/기동/헬스체크
@@ -38,8 +38,9 @@ IoT-Edge-Gateway PoC 결과 보고서
 6) 문제 및 개선 사항
 - ModRSsim2는 범위 밖 주소에서 Illegal Address 대신 timeout으로 응답함.
 - 복구 전송 메시지는 구독 타이밍에 따라 누락될 수 있어 DB 저장/복구 로그로 확인.
+- 인증 실패 테스트 중 DB 저장 경합으로 SQLITE_BUSY 발생 (Store & Forward 동시 쓰기 병목 가능)
 
 7) 다음 단계 제안
-- MQTT 인증 실패 테스트 추가
 - Illegal Address 응답이 가능한 시뮬레이터로 재검증
-- 변경 사항 커밋 및 배포 절차 정리
+- 실제 서버 연동 정보 확보 후 log_api를 운영 값으로 전환
+- DB 동시 쓰기 경합 완화(WAL/재시도 정책) 검토
