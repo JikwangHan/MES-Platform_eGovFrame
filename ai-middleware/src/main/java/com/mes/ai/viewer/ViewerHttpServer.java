@@ -476,8 +476,8 @@ public class ViewerHttpServer {
                         </select>
                         <select id="pageSizeSelect">
                           <option value="10">10개</option>
-                          <option value="20" selected>20개</option>
-                          <option value="50">50개</option>
+                          <option value="20">20개</option>
+                          <option value="50" selected>50개</option>
                         </select>
                         <button class="secondary" id="clearFilterBtn">필터 초기화</button>
                       </div>
