@@ -469,7 +469,7 @@ public class ViewerHttpServer {
                           <option value="decisionDesc">결정 내림차순</option>
                           <option value="reasonAsc">사유코드 오름차순</option>
                           <option value="reasonDesc">사유코드 내림차순</option>
-                          <option value="timeDesc">시간 최신순</option>
+                          <option value="timeDesc" selected>시간 최신순</option>
                           <option value="timeAsc">시간 오래된순</option>
                           <option value="idDesc">ID 내림차순</option>
                           <option value="idAsc">ID 오름차순</option>
@@ -655,7 +655,7 @@ public class ViewerHttpServer {
                       decisionSelect.value = '';
                       reasonCodeInput.value = '';
                       textSearchInput.value = '';
-                      sortSelect.value = 'decisionAsc';
+                      sortSelect.value = 'timeDesc';
                       pageSizeSelect.value = '20';
                       pageIndex = 1;
                       applyDecisionFilters();
