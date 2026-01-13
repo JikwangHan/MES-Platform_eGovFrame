@@ -34,3 +34,4 @@ java -cp "ai-middleware/target/classes;$((Get-Content -Raw ai-middleware/target/
 - 정렬: 결정/사유 코드/시간/ID 오름차순·내림차순
 - 페이지 크기: 10/20/50 선택
 - 이동: 이전/다음 버튼으로 페이지 이동
+- 기본 정렬: 시간 최신순(timeDesc)
