@@ -43,3 +43,8 @@ java -cp "ai-middleware/target/classes;$((Get-Content -Raw ai-middleware/target/
 - ai.viewer.decisions.defaultPageSize
   - 기본값: 50
   - 허용값: 10/20/50
+
+## 기본값 변경 실행 예시
+```powershell
+java "-Dai.viewer.decisions.defaultSort=reasonAsc" "-Dai.viewer.decisions.defaultPageSize=20" -cp $cp com.mes.ai.viewer.ViewerServiceRunner
+```
