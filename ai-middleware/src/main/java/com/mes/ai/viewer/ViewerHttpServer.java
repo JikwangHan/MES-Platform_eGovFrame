@@ -469,6 +469,10 @@ public class ViewerHttpServer {
                           <option value="decisionDesc">결정 내림차순</option>
                           <option value="reasonAsc">사유코드 오름차순</option>
                           <option value="reasonDesc">사유코드 내림차순</option>
+                          <option value="timeDesc">시간 최신순</option>
+                          <option value="timeAsc">시간 오래된순</option>
+                          <option value="idDesc">ID 내림차순</option>
+                          <option value="idAsc">ID 오름차순</option>
                         </select>
                         <select id="pageSizeSelect">
                           <option value="10">10개</option>
@@ -574,12 +578,31 @@ public class ViewerHttpServer {
                       const sorted = items.slice();
                       const decisionKey = item => String(item.decision || '');
                       const reasonKey = item => String(item.reasonCode || '');
+                      const timeKey = item => {
+                        const raw = item.timestamp || item.quarantinedAt || item.receivedAt;
+                        if (!raw) return 0;
+                        const parsed = Date.parse(raw);
+                        return Number.isNaN(parsed) ? 0 : parsed;
+                      };
+                      const idKey = item => {
+                        const raw = item.rawId || item.recordId || 0;
+                        const parsed = Number(raw);
+                        return Number.isNaN(parsed) ? 0 : parsed;
+                      };
                       if (mode === 'decisionDesc') {
                         sorted.sort((a, b) => decisionKey(b).localeCompare(decisionKey(a)));
                       } else if (mode === 'reasonAsc') {
                         sorted.sort((a, b) => reasonKey(a).localeCompare(reasonKey(b)));
                       } else if (mode === 'reasonDesc') {
                         sorted.sort((a, b) => reasonKey(b).localeCompare(reasonKey(a)));
+                      } else if (mode === 'timeDesc') {
+                        sorted.sort((a, b) => timeKey(b) - timeKey(a));
+                      } else if (mode === 'timeAsc') {
+                        sorted.sort((a, b) => timeKey(a) - timeKey(b));
+                      } else if (mode === 'idDesc') {
+                        sorted.sort((a, b) => idKey(b) - idKey(a));
+                      } else if (mode === 'idAsc') {
+                        sorted.sort((a, b) => idKey(a) - idKey(b));
                       } else {
                         sorted.sort((a, b) => decisionKey(a).localeCompare(decisionKey(b)));
                       }
