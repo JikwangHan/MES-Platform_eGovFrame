@@ -107,8 +107,21 @@ func main() {
 		// MQTT 연결은 공용으로 사용하므로 재사용합니다.
 		if globalClient == nil || !globalClient.IsConnected() {
 			opts := mqtt.NewClientOptions().AddBroker(cfg.MQTT.Broker)
+			// 운영 환경에서 인증이 필요한 경우를 대비해 설정값을 반영합니다.
+			if cfg.MQTT.ClientID != "" {
+				opts.SetClientID(cfg.MQTT.ClientID)
+			}
+			if cfg.MQTT.Username != "" {
+				opts.SetUsername(cfg.MQTT.Username)
+			}
+			if cfg.MQTT.Password != "" {
+				opts.SetPassword(cfg.MQTT.Password)
+			}
 			globalClient = mqtt.NewClient(opts)
-			_ = globalClient.Connect()
+			token := globalClient.Connect()
+			if token.Wait() && token.Error() != nil {
+				logger.Log.Errorf("MQTT 연결 실패: %v", token.Error())
+			}
 		}
 
 		// 장비별 수집 워커를 분리하여 장애 영향 범위를 최소화합니다.

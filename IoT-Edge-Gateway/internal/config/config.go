@@ -60,6 +60,8 @@ type MQTTConfig struct {
 	Broker   string `json:"broker"`
 	Topic    string `json:"topic"`
 	ClientID string `json:"client_id"`
+	Username string `json:"username"` // 브로커 인증용 사용자명
+	Password string `json:"password"` // 브로커 인증용 비밀번호
 }
 
 // PortsConfig는 외부 노출 포트를 정의합니다.

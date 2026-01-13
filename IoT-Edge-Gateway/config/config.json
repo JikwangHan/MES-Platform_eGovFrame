@@ -19,7 +19,9 @@
   "mqtt": {
     "broker": "tcp://localhost:1883",
     "topic": "mes/telemetry",
-    "client_id": "edge_gw_01"
+    "client_id": "edge_gw_01",
+    "username": "",
+    "password": ""
   },
   "log_api": {
     "enabled": true,
