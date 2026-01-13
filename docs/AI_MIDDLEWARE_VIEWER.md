@@ -65,3 +65,21 @@ $cp = "ai-middleware/target/classes;$deps"
   "com.mes.ai.viewer.ViewerServiceRunner"
 )
 ```
+
+## Viewer 실행 템플릿(warn 정책)
+스키마 미등록을 경고로 통과시키고 Unknown을 남기려면 warn 정책을 추가합니다.
+```powershell
+$deps = Get-Content -Raw ai-middleware/target/classpath.txt
+$cp = "ai-middleware/target/classes;$deps"
+
+& java @(
+  "-Dfile.encoding=UTF-8",
+  "-Dai.viewer.ingressPort=18091",
+  "-Dai.viewer.uiPort=18092",
+  "-Dai.schema.missingPolicy=warn",
+  "-Dai.viewer.decisions.defaultSort=timeDesc",
+  "-Dai.viewer.decisions.defaultPageSize=50",
+  "-cp", $cp,
+  "com.mes.ai.viewer.ViewerServiceRunner"
+)
+```
