@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +62,7 @@ public class ViewerHttpServer {
         this.server.createContext(DEFAULT_API_PREFIX + "/standard", new StandardHandler());
         this.server.createContext(DEFAULT_API_PREFIX + "/quarantine", new QuarantineHandler());
         this.server.createContext(DEFAULT_API_PREFIX + "/unknown", new UnknownHandler());
+        this.server.createContext(DEFAULT_API_PREFIX + "/decisions", new DecisionHandler());
     }
 
     /**
@@ -224,6 +226,25 @@ public class ViewerHttpServer {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             sendJson(exchange, List.copyOf(unknownService.getRecords()));
+        }
+    }
+
+    /**
+     * 목적: 파이프라인 결정(표준/격리/Unknown) 요약 API를 제공합니다.
+     * 기능: 표준/격리/Unknown 데이터를 하나의 목록으로 합쳐 제공합니다.
+     * 이유: 운영 로그 기준의 decision/reasonCode를 UI에서 빠르게 확인하기 위함입니다.
+     * 유지보수: 필드 구성이 바뀌면 이 핸들러에서 조정합니다.
+     */
+    private final class DecisionHandler implements HttpHandler {
+        /**
+         * 목적: handle 동작을 수행합니다.
+         * 기능: 필요한 처리를 수행합니다.
+         * 이유: 기능 흐름을 한 곳에서 담당하기 위함입니다.
+         * 유지보수: 로직 변경 시 이 메서드를 수정합니다.
+         */
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            sendJson(exchange, buildDecisionSnapshots());
         }
     }
 
@@ -418,6 +439,7 @@ public class ViewerHttpServer {
                         <div class="tab" data-tab="standard">Standard</div>
                         <div class="tab" data-tab="quarantine">Quarantine</div>
                         <div class="tab" data-tab="unknown">Unknown</div>
+                        <div class="tab" data-tab="decisions">Decisions</div>
                       </div>
                     </aside>
                     <section class="panel content">
@@ -493,5 +515,102 @@ public class ViewerHttpServer {
                 </body>
                 </html>
                 """;
+    }
+
+    /**
+     * 목적: 표준/격리/Unknown 데이터를 하나의 결정 목록으로 만듭니다.
+     * 기능: decision/reasonCode/reasonDetail 필드를 포함해 리스트로 반환합니다.
+     * 이유: 운영 로그 표준과 UI를 맞춰 분석을 쉽게 하기 위함입니다.
+     * 유지보수: 결정 정책이 바뀌면 이 메서드에서 조정합니다.
+     */
+    private List<Map<String, Object>> buildDecisionSnapshots() {
+        List<Map<String, Object>> items = new ArrayList<>();
+
+        storeService.getStandardStore().forEach(envelope -> {
+            Map<String, Object> item = new HashMap<>();
+            item.put("decision", "STANDARD");
+            item.put("rawId", envelope.getRawId());
+            item.put("deviceId", envelope.getDeviceId());
+            item.put("messageType", envelope.getMessageType() == null ? null : envelope.getMessageType().name());
+            item.put("timestamp", envelope.getTimestamp());
+            item.put("reasonCode", "VALIDATION_PASS");
+            item.put("reasonDetail", "-");
+            items.add(item);
+        });
+
+        quarantineService.getRecords().forEach(record -> {
+            ReasonParts parts = splitReason(record.getReason());
+            Map<String, Object> item = new HashMap<>();
+            item.put("decision", "QUARANTINE");
+            item.put("rawId", record.getRawEnvelope() == null ? null : record.getRawEnvelope().getId());
+            item.put("ingressType", record.getRawEnvelope() == null ? null : record.getRawEnvelope().getIngressType());
+            item.put("contentType", record.getRawEnvelope() == null ? null : record.getRawEnvelope().getContentType());
+            item.put("reasonCode", parts.code);
+            item.put("reasonDetail", safeDetail(parts.detail));
+            item.put("quarantinedAt", record.getQuarantinedAt());
+            items.add(item);
+        });
+
+        unknownService.getRecords().forEach(record -> {
+            ReasonParts parts = splitReason(record.getQuarantineReason());
+            Map<String, Object> item = new HashMap<>();
+            item.put("decision", "UNKNOWN");
+            item.put("recordId", record.getId());
+            item.put("ingressType", record.getIngressType());
+            item.put("contentType", record.getContentType());
+            item.put("reasonCode", parts.code);
+            item.put("reasonDetail", safeDetail(parts.detail));
+            item.put("receivedAt", record.getReceivedAt());
+            items.add(item);
+        });
+        return items;
+    }
+
+    /**
+     * 목적: 사유 문자열을 코드/상세로 분리합니다.
+     * 기능: 콜론 기준으로 reasonCode와 reasonDetail을 나눕니다.
+     * 이유: 운영 로그 표준과 동일한 구조를 제공하기 위함입니다.
+     * 유지보수: 사유 포맷이 바뀌면 분리 규칙을 수정합니다.
+     */
+    private ReasonParts splitReason(String reason) {
+        if (reason == null || reason.trim().isEmpty()) {
+            return new ReasonParts("UNKNOWN", "-");
+        }
+        int index = reason.indexOf(':');
+        if (index < 0) {
+            return new ReasonParts(reason.trim(), "-");
+        }
+        String code = reason.substring(0, index).trim();
+        String detail = reason.substring(index + 1).trim();
+        return new ReasonParts(code.isEmpty() ? "UNKNOWN" : code, detail.isEmpty() ? "-" : detail);
+    }
+
+    /**
+     * 목적: 상세 사유의 빈 값을 안전한 문자열로 보정합니다.
+     * 기능: null/빈 문자열을 "-"로 치환합니다.
+     * 이유: UI에서 빈 값으로 인한 혼란을 줄이기 위함입니다.
+     * 유지보수: 표시 정책이 바뀌면 이 메서드를 수정합니다.
+     */
+    private String safeDetail(String detail) {
+        if (detail == null || detail.trim().isEmpty()) {
+            return "-";
+        }
+        return detail;
+    }
+
+    /**
+     * 목적: 사유 분리 결과를 보관합니다.
+     * 기능: 코드/상세를 묶어 전달합니다.
+     * 이유: decision API 응답에서 일관된 필드를 제공하기 위함입니다.
+     * 유지보수: 사유 구조가 바뀌면 이 클래스도 수정합니다.
+     */
+    private static final class ReasonParts {
+        private final String code;
+        private final String detail;
+
+        private ReasonParts(String code, String detail) {
+            this.code = code;
+            this.detail = detail;
+        }
     }
 }
