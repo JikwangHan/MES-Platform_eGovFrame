@@ -12,6 +12,7 @@ IoT-Edge-Gateway PoC 결과 보고서
 - 서버 수신: 성공 (MQTT mes/telemetry)
 - 복구 전송: 성공 (is_recovered 포함 메시지 수신)
 - 로그 API(Mock) 연동: 성공 (AP1002)
+- 로그 API(실서버) 연동: SKIP (실서버 부재)
 
 3) 상세 결과
 테스트 항목 | 결과 | 비고
@@ -34,6 +35,7 @@ IoT-Edge-Gateway PoC 결과 보고서
 - 빌드: 성공 (go build ./cmd/edge-gateway)
 - 기동: 성공 (go run ./cmd/edge-gateway)
 - 헬스체크: 성공 (GET http://localhost:18080/health)
+- MQTT 연결: SKIP (브로커 미기동으로 connect refused)
 
 6) 문제 및 개선 사항
 - ModRSsim2는 범위 밖 주소에서 Illegal Address 대신 timeout으로 응답함.
