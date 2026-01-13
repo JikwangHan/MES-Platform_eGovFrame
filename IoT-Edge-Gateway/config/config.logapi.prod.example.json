@@ -1,0 +1,12 @@
+{
+  "log_api": {
+    "enabled": true,
+    "base_url": "https://real.example.com",
+    "mode": "prod",
+    "crtfc_key": "REAL-CRTFC-KEY",
+    "use_se": "DO6003",
+    "source_ip": "",
+    "min_interval_sec": 600,
+    "request_timeout_s": 5
+  }
+}

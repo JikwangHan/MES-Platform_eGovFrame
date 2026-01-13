@@ -1,0 +1,12 @@
+{
+  "log_api": {
+    "enabled": true,
+    "base_url": "http://localhost:18090",
+    "mode": "mock",
+    "crtfc_key": "TEST-CRTFC-KEY",
+    "use_se": "DO6003",
+    "source_ip": "",
+    "min_interval_sec": 30,
+    "request_timeout_s": 5
+  }
+}
