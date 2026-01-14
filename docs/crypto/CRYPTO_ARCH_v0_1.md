@@ -15,6 +15,7 @@ CRYPTO_ARCH_v0_1
 - IoT-Edge-Gateway: 패턴 A(검증필 SW 모듈 내장형)
 - AI Middleware: 패턴 C(핵심 키 HSM + 나머지 SW)
 - MES Web Service: 패턴 C(핵심 키 HSM + 나머지 SW)
+  - 개발 단계: HSM 인터페이스 유지, 실제 장비 연동 비활성
 
 IoT-Edge-Gateway 적용 현황(Go)
 - CryptoAdapter 인터페이스 및 Free/Kcmvp 구현체 골격 추가 완료
@@ -25,11 +26,12 @@ IoT-Edge-Gateway 적용 현황(Go)
   - FreeCryptoImpl: 개발 단계 무료 구현(오픈소스 또는 KISA C 소스 cgo 연동)
   - KcmvpCryptoImpl: 상용화 전환용 구현체(검증필 모듈 교체)
 - Edge Gateway(Java/Android): JCE Provider 또는 CryptoService 레이어로 캡슐화
-  - 개발 단계: FreeCryptoProviderImpl
-  - 상용화 단계: KcmvpProviderImpl로 교체
+  - 개발 단계: FreeCryptoProviderImpl(오픈소스/표준 알고리즘 기반)
+  - 상용화 단계: KcmvpProviderImpl로 교체(검증필 모듈)
 - AI/MES(Java): CryptoService 레이어로 캡슐화
-  - 개발 단계: FreeCryptoProviderImpl
-  - 상용화 단계: KcmvpProviderImpl로 교체
+  - 개발 단계: FreeCryptoProviderImpl(오픈소스/표준 알고리즘 기반)
+  - 상용화 단계: KcmvpProviderImpl로 교체(검증필 모듈)
+  - 암호 경계와 컨테이너 포맷은 교체 전후 동일 유지
 
 암호문 컨테이너 포맷(고정)
 - AEAD(GCM 또는 CCM) 기반
