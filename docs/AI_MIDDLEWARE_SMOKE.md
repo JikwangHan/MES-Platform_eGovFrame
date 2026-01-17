@@ -105,13 +105,13 @@ java "-Dfile.encoding=UTF-8" "-Dai.security.scan.mockClean=true" "-Dai.http.port
 - OS: Microsoft Windows 11 Pro 10.0.26200 (64비트)
 - JDK: OpenJDK Temurin 17.0.11+9
 - 아키텍처: 64비트
-- 실행 일시: 2026-01-17 11:50 (KST)
+- 실행 일시: 2026-01-17 16:18 (KST)
 
 ### 실행 명령
 ```powershell
 $deps = Get-Content -Raw ai-middleware/target/classpath.txt
 $cp = "ai-middleware/target/classes;$deps"
-java "-Dfile.encoding=UTF-8" "-Dai.security.scan.mockClean=true" "-Dai.http.port=18080" -cp $cp com.mes.ai.tools.HttpIngressSmokeRunner
+java "-Dfile.encoding=UTF-8" "-Dai.security.scan.mockClean=true" "-Dai.crypto.enabled=true" "-Dai.crypto.key.base64=<임시 키>" "-Dai.crypto.key.id=dev-key" "-Dai.crypto.key.version=v1" "-Dai.http.port=18080" -cp $cp com.mes.ai.tools.HttpIngressSmokeRunner
 ```
 
 ### 결과 요약

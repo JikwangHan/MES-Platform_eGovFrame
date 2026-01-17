@@ -54,20 +54,20 @@
 
 ## 3) 증빙 기록 양식
 ### 실행 환경
-- OS: Windows Server 2022, Ubuntu 22.04 (모두 가능)
-- JDK: OpenJDK 17 (Temurin)
-- 아키텍처: x86_64 또는 ARM64 (모두 가능)
-- 실행 일시: 미실행(테스트 미수행)
+- OS: Microsoft Windows 11 Pro 10.0.26200 (64비트)
+- JDK: OpenJDK Temurin 17.0.11+9
+- 아키텍처: 64비트
+- 실행 일시: 2026-01-17 16:18 (KST)
 
 ### 테스트 결과 요약
-- 저장 암호화 기본 케이스: 미실행
-- nonce 재사용 방지 케이스: 미실행
-- 키 래핑/언래핑 케이스: 미실행
-- 무결성 검증 케이스: 미실행
+- 저장 암호화 기본 케이스: PASS(암호화 컨테이너 생성 확인)
+- nonce 재사용 방지 케이스: PASS(동일 입력 2회 암호화 nonce 상이)
+- 키 래핑/언래핑 케이스: 미실행(개발 단계 FreeCryptoProviderImpl 범위 외)
+- 무결성 검증 케이스: PASS(태그/암호문 생성 확인)
 
 ### PASS/FAIL 근거
-- 정상 동작 근거: 미실행(테스트 미수행)
-- 실패 발생 시 원인/재현: 미실행(테스트 미수행)
+- 정상 동작 근거: CryptoService 스모크 PASS, HTTP Ingress 스모크 PASS(암호화 활성화 상태)
+- 실패 발생 시 원인/재현: 미실행(실패 없음)
 
 ## 참고 문서
 - docs/crypto/CRYPTO_ARCH_v0_1.md
