@@ -1,8 +1,13 @@
-# AI Middleware KCMVP 키 관리 정책(초안)
+# AI Middleware KCMVP 키 관리 정책(v0.2)
 
 ## 목적
 - KCMVP 요구사항을 충족하기 위한 키 관리 정책을 정의합니다.
 - 운영/감사/시험기관 대응 시 일관된 기준을 제공합니다.
+
+## 문서 정합성 기준
+- 적용 범위/패턴은 `docs/AI_MIDDLEWARE_KCMVP_SCOPE.md` 기준을 따릅니다.
+- 암호화/TLS 운영은 `docs/AI_MIDDLEWARE_KCMVP_ENCRYPTION_POLICY.md` 기준을 따릅니다.
+- 모듈 후보 확정/운영 환경 검증은 `docs/AI_MIDDLEWARE_KCMVP_MODULE_CHECKLIST.md` 기준을 따릅니다.
 
 ## 적용 범위
 - AI Middleware 저장 암호화(원본/표준/격리/Unknown)
@@ -58,7 +63,8 @@
 3) 정기 회전 계획 실행
 4) 폐기 및 감사 로그 보관
 
-## 검토 필요 항목(결정 필요)
-- 회전 주기 확정
+## 검토 필요 항목(확정 대상)
+- 회전 주기 확정(운영 환경 기준 반영)
 - 키 보관 위치(경로/키스토어) 확정
 - 키 유출 대응 보고 체계 확정
+- 모듈 후보 확정 시 KEK/DEK 보관 방식 재확인
