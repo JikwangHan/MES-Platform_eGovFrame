@@ -28,3 +28,27 @@ AI Middleware (eGovFrame 기반)
 - local_docs/S3_logging_audit_design.md
 - local_docs/S3_backup_restore_design.md
 - local_docs/EdgeGateway_PoC_plan.md
+
+CryptoService 설정(개발/PoC)
+1) 암호화 활성화 키
+   - ai.crypto.enabled=true
+2) AES 키(Base64, 16 또는 32바이트)
+   - ai.crypto.key.base64=<임시 키>
+3) 키 식별자/버전
+   - ai.crypto.key.id=dev-key
+   - ai.crypto.key.version=v1
+주의: 실제 키는 문서/로그/코드에 기록하지 않습니다.
+
+CryptoService 스모크(암호화 활성)
+```powershell
+$deps = Get-Content -Raw ai-middleware/target/classpath.txt
+$cp = "ai-middleware/target/classes;$deps"
+java "-Dfile.encoding=UTF-8" "-Dai.crypto.enabled=true" "-Dai.crypto.key.base64=<임시 키>" "-Dai.crypto.key.id=dev-key" "-Dai.crypto.key.version=v1" -cp $cp com.mes.ai.tools.CryptoServiceSmokeRunner
+```
+
+HTTP Ingress 스모크(암호화 활성)
+```powershell
+$deps = Get-Content -Raw ai-middleware/target/classpath.txt
+$cp = "ai-middleware/target/classes;$deps"
+java "-Dfile.encoding=UTF-8" "-Dai.security.scan.mockClean=true" "-Dai.crypto.enabled=true" "-Dai.crypto.key.base64=<임시 키>" "-Dai.crypto.key.id=dev-key" "-Dai.crypto.key.version=v1" "-Dai.http.port=18080" -cp $cp com.mes.ai.tools.HttpIngressSmokeRunner
+```
