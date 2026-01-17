@@ -23,3 +23,27 @@
 - 민감정보(로컬 경로/토큰/계정) 기록 없음
 - PR 정책 준수(코드+스모크/테스트+문서)
 - 변경 범위에 맞는 파일만 add
+
+## PR-06 증빙 요약(2026-01-17)
+### 코드 변경 증빙
+- 변경 파일:
+  - docs/AI_MIDDLEWARE_KCMVP_SCOPE.md
+  - docs/AI_MIDDLEWARE_KCMVP_KEY_POLICY.md
+  - docs/AI_MIDDLEWARE_KCMVP_ENCRYPTION_POLICY.md
+  - docs/AI_MIDDLEWARE_KCMVP_MODULE_CHECKLIST.md
+  - docs/AI_MIDDLEWARE_SMOKE.md
+  - docs/AI_MIDDLEWARE_EVIDENCE_PACK.md
+  - docs/PR_RECORDS.md
+- 변경 요약: KCMVP 문서 정합성 기준 확정, 모듈 후보 체크리스트 템플릿/스모크 증빙 템플릿/PR 증빙 문서 보강
+- 영향 범위: 문서/정책/증빙 가이드(코드 로직 변경 없음)
+
+### 스모크/테스트 증빙
+- 스모크 기록 위치: `docs/AI_MIDDLEWARE_SMOKE.md`
+- 결과 요약: 성공/별칭/장비/장비-2/경고 케이스 202, 버전 형식 오류/실패 격리 1, Unknown Ingest 1
+
+### 문서 증빙
+- 변경 문서 목록: 위 “변경 파일”과 동일
+- 핵심 변경점 3줄 요약:
+  - KCMVP 관련 문서 간 기준/용어를 상호 참조로 고정
+  - 운영 검증을 위한 체크리스트/템플릿을 추가
+  - 스모크 실행 결과를 문서 증빙으로 남길 수 있게 템플릿 보강
