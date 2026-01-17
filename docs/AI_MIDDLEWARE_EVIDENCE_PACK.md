@@ -50,3 +50,23 @@
   - KCMVP 관련 문서 간 기준/용어를 상호 참조로 고정
   - 운영 검증을 위한 체크리스트/템플릿을 추가
   - 스모크 실행 결과를 문서 증빙으로 남길 수 있게 템플릿 보강
+
+## PR-16 증빙 요약(2026-01-17)
+### 코드 변경 증빙
+- 변경 파일:
+  - ai-middleware/src/main/java/com/mes/ai/tools/CryptoServiceSmokeRunner.java
+  - docs/AI_MIDDLEWARE_OPERATIONAL_VERIFICATION_PACK.md
+  - docs/AI_MIDDLEWARE_SMOKE.md
+- 변경 요약: CryptoService 스모크 실행기 추가 및 암호화 실행 결과 증빙 반영
+- 영향 범위: 스모크 검증 도구/문서 증빙(로직 변경 없음)
+
+### 스모크/테스트 증빙
+- CryptoService 스모크: PASS(Nonce 차이/암호문/태그 확인)
+- HTTP Ingress 스모크: PASS(암호화 활성 상태)
+
+### 문서 증빙
+- 변경 문서 목록: 위 “변경 파일”과 동일
+- 핵심 변경점 3줄 요약:
+  - 암호화 스모크 실행기 추가로 검증 자동화
+  - 운영 점검 패키지에 실제 실행 결과 반영
+  - 스모크 증빙에 암호화 활성 실행 명령 기록
