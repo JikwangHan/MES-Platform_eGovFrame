@@ -2,6 +2,7 @@ MIGRATION_PLAN_v0_1
 
 목적
 - 무료 구현 → KCMVP 검증필 모듈 전환 절차를 데이터 포맷 변경 없이 수행합니다.
+- 외부 입력(공급사 자료) 없이 무료 오픈소스 구현을 기본 적용합니다.
 
 전제 조건
 - CryptoService/crypto boundary 구현 완료
