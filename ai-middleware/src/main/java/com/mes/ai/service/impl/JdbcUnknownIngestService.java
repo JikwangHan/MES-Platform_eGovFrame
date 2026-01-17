@@ -1,5 +1,7 @@
 package com.mes.ai.service.impl;
 
+import com.mes.ai.crypto.CryptoService;
+import com.mes.ai.crypto.CryptoServiceFactory;
 import com.mes.ai.model.UnknownIngestRecord;
 import com.mes.ai.service.UnknownIngestService;
 
@@ -30,6 +32,8 @@ public class JdbcUnknownIngestService implements UnknownIngestService {
 
     /** JDBC 연결을 제공하는 DataSource입니다. */
     private final DataSource dataSource;
+    /** 암호화 서비스입니다. */
+    private final CryptoService cryptoService = CryptoServiceFactory.getInstance();
 
     /**
      * 목적: DataSource를 주입받아 저장을 수행합니다.
@@ -52,25 +56,34 @@ public class JdbcUnknownIngestService implements UnknownIngestService {
         if (record == null) {
             throw new IllegalArgumentException("UnknownIngestRecord가 없습니다.");
         }
+        /*
+         * 목적: Unknown 저장 대상 중 민감 필드를 암호화합니다.
+         * 기능: 원문/사유/시그니처를 컨테이너 포맷으로 변환합니다.
+         * 이유: 미정의 입력도 저장 구간 보호가 필요하기 때문입니다.
+         * 유지보수: 암호화 대상 변경 시 이 블록을 수정합니다.
+         */
+        String payloadBase64 = cryptoService.encrypt(record.getPayloadBase64(), "unknown_ingest.payloadBase64");
+        String scanSignature = cryptoService.encrypt(record.getScanSignature(), "unknown_ingest.scanSignature");
+        String quarantineReason = cryptoService.encrypt(record.getQuarantineReason(), "unknown_ingest.quarantineReason");
         int maxAttempts = resolveRetryCount();
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try (Connection connection = dataSource.getConnection();
                  PreparedStatement statement = connection.prepareStatement(INSERT_SQL, Statement.RETURN_GENERATED_KEYS)) {
                 statement.setString(1, record.getReceivedAt());
                 statement.setString(2, record.getIngressType());
-                statement.setString(3, record.getPayloadBase64());
+                statement.setString(3, payloadBase64);
                 statement.setString(4, record.getPayloadHash());
                 statement.setString(5, record.getSourceIdHash());
                 statement.setString(6, record.getContentType());
                 statement.setString(7, record.getScanStatus());
                 statement.setString(8, record.getScanEngine());
-                statement.setString(9, record.getScanSignature());
+                statement.setString(9, scanSignature);
                 if (record.getScanDurationMs() == null) {
                     statement.setObject(10, null);
                 } else {
                     statement.setLong(10, record.getScanDurationMs());
                 }
-                statement.setString(11, record.getQuarantineReason());
+                statement.setString(11, quarantineReason);
                 statement.executeUpdate();
 
                 try (ResultSet keys = statement.getGeneratedKeys()) {

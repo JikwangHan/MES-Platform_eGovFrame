@@ -1,5 +1,7 @@
 package com.mes.ai.service.impl;
 
+import com.mes.ai.crypto.CryptoService;
+import com.mes.ai.crypto.CryptoServiceFactory;
 import com.mes.ai.model.RawEnvelope;
 import com.mes.ai.model.ScanResult;
 import com.mes.ai.model.ValidationResult;
@@ -37,6 +39,8 @@ public class JdbcQuarantineService implements QuarantineService {
 
     /** JDBC 연결을 제공하는 DataSource입니다. */
     private final DataSource dataSource;
+    /** 암호화 서비스입니다. */
+    private final CryptoService cryptoService = CryptoServiceFactory.getInstance();
 
     /**
      * 목적: DataSource를 주입받아 격리 저장을 수행합니다.
@@ -183,7 +187,7 @@ public class JdbcQuarantineService implements QuarantineService {
     private void bindBasic(PreparedStatement statement, RawEnvelope rawEnvelope, ReasonParts parts) throws SQLException {
         statement.setLong(1, rawEnvelope.getId());
         statement.setString(2, parts.reasonCode);
-        statement.setString(3, parts.reasonDetail);
+        statement.setString(3, cryptoService.encrypt(parts.reasonDetail, "quarantine.reasonDetail"));
     }
 
     /**
@@ -196,11 +200,11 @@ public class JdbcQuarantineService implements QuarantineService {
             throws SQLException {
         statement.setLong(1, rawEnvelope.getId());
         statement.setString(2, parts.reasonCode);
-        statement.setString(3, parts.reasonDetail);
+        statement.setString(3, cryptoService.encrypt(parts.reasonDetail, "quarantine.reasonDetail"));
         if (scanResult != null) {
             statement.setString(4, scanResult.getStatus() == null ? null : scanResult.getStatus().name());
             statement.setString(5, scanResult.getEngine());
-            statement.setString(6, scanResult.getSignature());
+            statement.setString(6, cryptoService.encrypt(scanResult.getSignature(), "quarantine.scanSignature"));
             if (scanResult.getDurationMs() == null) {
                 statement.setObject(7, null);
             } else {

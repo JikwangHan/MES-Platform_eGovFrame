@@ -12,6 +12,11 @@
 ### 1.2 사전 조건
 - 개발/PoC 단계는 무료 오픈소스 적용
 - CryptoService 경계 외부에서 암호 API 직접 호출 금지
+- 암호화 적용 시 시스템 속성 설정 필요
+  - ai.crypto.enabled=true
+  - ai.crypto.key.base64=Base64 인코딩 AES 키(16 또는 32바이트)
+  - ai.crypto.key.id=키 식별자(예: dev-key)
+  - ai.crypto.key.version=키 버전(예: v1)
 
 ### 1.3 테스트 케이스(요약)
 1) 저장 암호화 기본 케이스
