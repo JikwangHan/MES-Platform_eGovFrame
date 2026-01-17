@@ -1,5 +1,7 @@
 package com.mes.ai.service.impl;
 
+import com.mes.ai.crypto.CryptoService;
+import com.mes.ai.crypto.CryptoServiceFactory;
 import com.mes.ai.model.QuarantineRecord;
 import com.mes.ai.model.RawEnvelope;
 import com.mes.ai.model.ScanResult;
@@ -22,6 +24,8 @@ import java.util.List;
 public class InMemoryQuarantineService implements QuarantineService {
     /** 격리 레코드 목록(스레드 안전)입니다. */
     private final List<QuarantineRecord> records = Collections.synchronizedList(new ArrayList<>());
+    /** 암호화 서비스입니다. */
+    private final CryptoService cryptoService = CryptoServiceFactory.getInstance();
 
     /**
      * 목적: 실패 데이터를 메모리에 격리 저장합니다.
@@ -34,7 +38,8 @@ public class InMemoryQuarantineService implements QuarantineService {
         // 격리 기록은 반드시 사유와 시각을 포함해야 합니다.
         QuarantineRecord record = new QuarantineRecord();
         record.setRawEnvelope(rawEnvelope);
-        record.setReason(validationResult == null ? "검증 결과 없음" : validationResult.getReason());
+        record.setReason(cryptoService.encrypt(validationResult == null ? "검증 결과 없음" : validationResult.getReason(),
+                "quarantine.reasonDetail"));
         record.setQuarantinedAt(TimeUtils.nowIsoUtc());
         applyScanInfo(record, scanResult);
         records.add(record);
@@ -66,7 +71,7 @@ public class InMemoryQuarantineService implements QuarantineService {
             record.setScanStatus(status.name());
         }
         record.setScanEngine(scanResult.getEngine());
-        record.setScanSignature(scanResult.getSignature());
+        record.setScanSignature(cryptoService.encrypt(scanResult.getSignature(), "quarantine.scanSignature"));
         record.setScanDurationMs(scanResult.getDurationMs());
         record.setScanError(scanResult.getError());
     }

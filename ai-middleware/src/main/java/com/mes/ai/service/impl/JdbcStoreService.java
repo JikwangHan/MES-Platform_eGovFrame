@@ -1,5 +1,7 @@
 package com.mes.ai.service.impl;
 
+import com.mes.ai.crypto.CryptoService;
+import com.mes.ai.crypto.CryptoServiceFactory;
 import com.mes.ai.model.Envelope;
 import com.mes.ai.model.RawEnvelope;
 import com.mes.ai.service.StoreService;
@@ -46,6 +48,8 @@ public class JdbcStoreService implements StoreService {
     private final DataSource dataSource;
     /** JSON 직렬화를 위한 ObjectMapper입니다. */
     private final ObjectMapper objectMapper = JacksonUtils.getObjectMapper();
+    /** 암호화 서비스입니다. */
+    private final CryptoService cryptoService = CryptoServiceFactory.getInstance();
 
     /**
      * 목적: DataSource를 주입받아 DB 저장을 수행합니다.
@@ -69,16 +73,26 @@ public class JdbcStoreService implements StoreService {
         if (rawEnvelope == null) {
             return;
         }
+        /*
+         * 목적: 저장 시 민감 필드를 암호화합니다.
+         * 기능: payload/base64/해시/식별자 등을 컨테이너 포맷으로 변환합니다.
+         * 이유: 저장 구간 암호화 정책을 적용하기 위함입니다.
+         * 유지보수: 암호화 대상이 늘어나면 이 블록을 확장합니다.
+         */
+        String payloadBase64 = cryptoService.encrypt(rawEnvelope.getPayloadBase64(), "raw_data.payloadBase64");
+        String payloadHash = cryptoService.encrypt(rawEnvelope.getPayloadHash(), "raw_data.payloadHash");
+        String sourceIdHash = cryptoService.encrypt(rawEnvelope.getSourceIdHash(), "raw_data.sourceIdHash");
+        String contentType = cryptoService.encrypt(rawEnvelope.getContentType(), "raw_data.contentType");
         int maxAttempts = resolveRetryCount();
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try (Connection connection = dataSource.getConnection();
                  PreparedStatement statement = connection.prepareStatement(INSERT_RAW_SQL_BASIC, Statement.RETURN_GENERATED_KEYS)) {
                 statement.setString(1, rawEnvelope.getReceivedAt());
                 statement.setString(2, rawEnvelope.getIngressType());
-                statement.setString(3, rawEnvelope.getPayloadBase64());
-                statement.setString(4, rawEnvelope.getPayloadHash());
-                statement.setString(5, rawEnvelope.getSourceIdHash());
-                statement.setString(6, rawEnvelope.getContentType());
+                statement.setString(3, payloadBase64);
+                statement.setString(4, payloadHash);
+                statement.setString(5, sourceIdHash);
+                statement.setString(6, contentType);
                 statement.executeUpdate();
 
                 // 생성된 raw_id를 원본에 반영합니다.
@@ -113,14 +127,25 @@ public class JdbcStoreService implements StoreService {
             throw new IllegalStateException("raw_id가 없어 표준 데이터를 저장할 수 없습니다.");
         }
         String payloadJson = toJson(envelope.getPayload());
+        /*
+         * 목적: 표준 저장 데이터 중 민감 필드를 암호화합니다.
+         * 기능: payload 및 식별/버전/시간 필드를 컨테이너로 변환합니다.
+         * 이유: 표준 저장 구간 암호화 정책을 적용하기 위함입니다.
+         * 유지보수: 암호화 대상 필드 변경 시 이 블록을 수정합니다.
+         */
+        String encryptedPayload = cryptoService.encrypt(payloadJson, "parsed_data.standardPayload");
+        String schemaVersion = cryptoService.encrypt(envelope.getSchemaVersion(), "parsed_data.schemaVersion");
+        String protocolVersion = cryptoService.encrypt(envelope.getProtocolVersion(), "parsed_data.protocolVersion");
+        String deviceId = cryptoService.encrypt(envelope.getDeviceId(), "parsed_data.deviceId");
+        String timestamp = cryptoService.encrypt(envelope.getTimestamp(), "parsed_data.timestamp");
         int maxAttempts = resolveRetryCount();
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try (Connection connection = dataSource.getConnection();
                  PreparedStatement statement = connection.prepareStatement(resolveStandardInsertSql())) {
                 if (useExtendedMode()) {
-                    bindStandardExtended(statement, envelope, payloadJson);
+                    bindStandardExtended(statement, envelope, encryptedPayload, schemaVersion, protocolVersion, deviceId, timestamp);
                 } else {
-                    bindStandardBasic(statement, envelope, payloadJson);
+                    bindStandardBasic(statement, envelope, encryptedPayload, schemaVersion, protocolVersion);
                 }
                 statement.executeUpdate();
                 return;
@@ -200,11 +225,17 @@ public class JdbcStoreService implements StoreService {
      * 이유: 최소 컬럼 구성을 지원하기 위함입니다.
      * 유지보수: 기본 모드 컬럼이 늘어나면 이 메서드를 수정합니다.
      */
-    private void bindStandardBasic(PreparedStatement statement, Envelope envelope, String payloadJson) throws SQLException {
+    private void bindStandardBasic(
+            PreparedStatement statement,
+            Envelope envelope,
+            String payloadJson,
+            String schemaVersion,
+            String protocolVersion
+    ) throws SQLException {
         statement.setLong(1, envelope.getRawId());
         statement.setString(2, payloadJson);
-        statement.setString(3, envelope.getSchemaVersion());
-        statement.setString(4, envelope.getProtocolVersion());
+        statement.setString(3, schemaVersion);
+        statement.setString(4, protocolVersion);
     }
 
     /**
@@ -213,15 +244,23 @@ public class JdbcStoreService implements StoreService {
      * 이유: 조회/추적 편의를 높이기 위함입니다.
      * 유지보수: 확장 모드 컬럼이 바뀌면 이 메서드를 수정합니다.
      */
-    private void bindStandardExtended(PreparedStatement statement, Envelope envelope, String payloadJson) throws SQLException {
+    private void bindStandardExtended(
+            PreparedStatement statement,
+            Envelope envelope,
+            String payloadJson,
+            String schemaVersion,
+            String protocolVersion,
+            String deviceId,
+            String timestamp
+    ) throws SQLException {
         statement.setLong(1, envelope.getRawId());
         statement.setString(2, payloadJson);
-        statement.setString(3, envelope.getSchemaVersion());
-        statement.setString(4, envelope.getProtocolVersion());
-        statement.setString(5, envelope.getDeviceId());
+        statement.setString(3, schemaVersion);
+        statement.setString(4, protocolVersion);
+        statement.setString(5, deviceId);
         statement.setString(6, envelope.getMessageType() == null ? null : envelope.getMessageType().name());
         statement.setString(7, readPayloadValue(envelope, "eventId", "event_id"));
-        statement.setString(8, envelope.getTimestamp());
+        statement.setString(8, timestamp);
     }
 
     /**

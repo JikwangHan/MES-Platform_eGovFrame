@@ -1,5 +1,7 @@
 package com.mes.ai.service.impl;
 
+import com.mes.ai.crypto.CryptoService;
+import com.mes.ai.crypto.CryptoServiceFactory;
 import com.mes.ai.model.Envelope;
 import com.mes.ai.model.RawEnvelope;
 import com.mes.ai.service.StoreService;
@@ -23,6 +25,8 @@ public class InMemoryStoreService implements StoreService {
     private final List<Envelope> standardStore = Collections.synchronizedList(new ArrayList<>());
     /** 원본 데이터 식별자 시퀀스입니다. */
     private final AtomicLong rawIdSequence = new AtomicLong(1);
+    /** 암호화 서비스입니다. */
+    private final CryptoService cryptoService = CryptoServiceFactory.getInstance();
 
     /**
      * 목적: 원본 데이터를 메모리에 저장합니다.
@@ -38,7 +42,7 @@ public class InMemoryStoreService implements StoreService {
             if (rawEnvelope.getId() == null) {
                 rawEnvelope.setId(rawIdSequence.getAndIncrement());
             }
-            rawStore.add(rawEnvelope);
+            rawStore.add(copyAndProtectRaw(rawEnvelope));
         }
     }
 
@@ -52,8 +56,44 @@ public class InMemoryStoreService implements StoreService {
     public void storeStandard(Envelope envelope) {
         // 검증된 표준 데이터만 저장한다는 전제를 지킵니다.
         if (envelope != null) {
-            standardStore.add(envelope);
+            standardStore.add(copyAndProtectStandard(envelope));
         }
+    }
+
+    /**
+     * 목적: 원본 데이터를 암호화 적용 후 복사본으로 보관합니다.
+     * 기능: 저장 구간에서 필요한 필드만 암호화해 복사 객체를 생성합니다.
+     * 이유: 파이프라인 처리 중 원본 객체를 변경하지 않기 위함입니다.
+     * 유지보수: 암호화 대상 필드가 늘어나면 이 메서드를 수정합니다.
+     */
+    private RawEnvelope copyAndProtectRaw(RawEnvelope rawEnvelope) {
+        RawEnvelope copy = new RawEnvelope();
+        copy.setId(rawEnvelope.getId());
+        copy.setReceivedAt(rawEnvelope.getReceivedAt());
+        copy.setIngressType(rawEnvelope.getIngressType());
+        copy.setPayloadBase64(cryptoService.encrypt(rawEnvelope.getPayloadBase64(), "raw_data.payloadBase64"));
+        copy.setPayloadHash(cryptoService.encrypt(rawEnvelope.getPayloadHash(), "raw_data.payloadHash"));
+        copy.setSourceIdHash(cryptoService.encrypt(rawEnvelope.getSourceIdHash(), "raw_data.sourceIdHash"));
+        copy.setContentType(cryptoService.encrypt(rawEnvelope.getContentType(), "raw_data.contentType"));
+        return copy;
+    }
+
+    /**
+     * 목적: 표준 데이터를 암호화 적용 후 복사본으로 보관합니다.
+     * 기능: payload/버전/식별자/시간 필드를 암호화한 복사 객체를 생성합니다.
+     * 이유: 저장 시 암호화 정책을 테스트 단계에서도 동일하게 확인하기 위함입니다.
+     * 유지보수: 암호화 대상 변경 시 이 메서드를 수정합니다.
+     */
+    private Envelope copyAndProtectStandard(Envelope envelope) {
+        Envelope copy = new Envelope();
+        copy.setRawId(envelope.getRawId());
+        copy.setMessageType(envelope.getMessageType());
+        copy.setPayload(envelope.getPayload());
+        copy.setSchemaVersion(cryptoService.encrypt(envelope.getSchemaVersion(), "parsed_data.schemaVersion"));
+        copy.setProtocolVersion(cryptoService.encrypt(envelope.getProtocolVersion(), "parsed_data.protocolVersion"));
+        copy.setDeviceId(cryptoService.encrypt(envelope.getDeviceId(), "parsed_data.deviceId"));
+        copy.setTimestamp(cryptoService.encrypt(envelope.getTimestamp(), "parsed_data.timestamp"));
+        return copy;
     }
 
     /**

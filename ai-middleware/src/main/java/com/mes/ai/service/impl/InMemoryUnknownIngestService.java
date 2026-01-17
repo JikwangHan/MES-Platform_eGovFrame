@@ -1,5 +1,7 @@
 package com.mes.ai.service.impl;
 
+import com.mes.ai.crypto.CryptoService;
+import com.mes.ai.crypto.CryptoServiceFactory;
 import com.mes.ai.model.UnknownIngestRecord;
 import com.mes.ai.service.UnknownIngestService;
 
@@ -19,6 +21,8 @@ public class InMemoryUnknownIngestService implements UnknownIngestService {
     private final List<UnknownIngestRecord> records = new ArrayList<>();
     /** 식별자 생성을 위한 시퀀스입니다. */
     private final AtomicLong sequence = new AtomicLong(1);
+    /** 암호화 서비스입니다. */
+    private final CryptoService cryptoService = CryptoServiceFactory.getInstance();
 
     /**
      * 목적: UnknownIngest 레코드를 메모리에 저장합니다.
@@ -34,8 +38,9 @@ public class InMemoryUnknownIngestService implements UnknownIngestService {
         if (record.getId() == null) {
             record.setId(sequence.getAndIncrement());
         }
-        records.add(record);
-        return record;
+        UnknownIngestRecord copy = copyAndProtect(record);
+        records.add(copy);
+        return copy;
     }
 
     /**
@@ -46,5 +51,29 @@ public class InMemoryUnknownIngestService implements UnknownIngestService {
      */
     public synchronized List<UnknownIngestRecord> getRecords() {
         return new ArrayList<>(records);
+    }
+
+    /**
+     * 목적: UnknownIngest 레코드를 암호화 적용 후 복사합니다.
+     * 기능: 원문/사유/시그니처를 컨테이너 포맷으로 변환합니다.
+     * 이유: 저장 구간 암호화 정책을 테스트 단계에서도 적용하기 위함입니다.
+     * 유지보수: 암호화 대상 필드가 늘어나면 이 메서드를 수정합니다.
+     */
+    private UnknownIngestRecord copyAndProtect(UnknownIngestRecord record) {
+        UnknownIngestRecord copy = new UnknownIngestRecord();
+        copy.setId(record.getId());
+        copy.setReceivedAt(record.getReceivedAt());
+        copy.setIngressType(record.getIngressType());
+        copy.setPayloadBase64(cryptoService.encrypt(record.getPayloadBase64(), "unknown_ingest.payloadBase64"));
+        copy.setPayloadHash(record.getPayloadHash());
+        copy.setSourceIdHash(record.getSourceIdHash());
+        copy.setContentType(record.getContentType());
+        copy.setScanStatus(record.getScanStatus());
+        copy.setScanEngine(record.getScanEngine());
+        copy.setScanSignature(cryptoService.encrypt(record.getScanSignature(), "unknown_ingest.scanSignature"));
+        copy.setScanDurationMs(record.getScanDurationMs());
+        copy.setQuarantineReason(cryptoService.encrypt(record.getQuarantineReason(), "unknown_ingest.quarantineReason"));
+        copy.setCreatedAt(record.getCreatedAt());
+        return copy;
     }
 }
