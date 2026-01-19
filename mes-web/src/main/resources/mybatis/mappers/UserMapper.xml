@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mes.web.dao.mapper.UserMapper">
+  <!--
+    목적: 사용자 정보를 조회한다.
+    기능: user_id 기준으로 사용자 정보를 가져온다.
+    이유: 로그인 인증에 필요한 정보를 얻기 위함이다.
+    유지보수: 컬럼 확정 시 선택 컬럼을 수정한다.
+  -->
+  <select id="findByUserId" parameterType="string" resultType="map">
+    SELECT
+      id,
+      user_id,
+      user_name,
+      password_hash,
+      role,
+      status,
+      login_fail_count
+    FROM users
+    WHERE user_id = #{userId}
+  </select>
+
+  <!--
+    목적: 로그인 성공 정보를 기록한다.
+    기능: 마지막 로그인 시간과 실패 횟수를 초기화한다.
+    이유: 잠금 정책을 정상화하기 위함이다.
+    유지보수: 정책 변경 시 SQL을 수정한다.
+  -->
+  <update id="recordLoginSuccess">
+    UPDATE users
+    SET login_fail_count = 0,
+        locked_at = NULL,
+        status = 'active',
+        last_login_at = NOW()
+    WHERE user_id = #{userId}
+  </update>
+
+  <!--
+    목적: 로그인 실패 정보를 기록한다.
+    기능: 실패 횟수를 증가시키고 임계값 이상이면 잠금 처리한다.
+    이유: 계정 잠금 정책을 적용하기 위함이다.
+    유지보수: 임계값 정책 변경 시 로직을 수정한다.
+  -->
+  <update id="recordLoginFail">
+    UPDATE users
+    SET login_fail_count = login_fail_count + 1,
+        status = CASE
+                   WHEN login_fail_count + 1 >= #{lockThreshold} THEN 'locked'
+                   ELSE status
+                 END,
+        locked_at = CASE
+                      WHEN login_fail_count + 1 >= #{lockThreshold} THEN NOW()
+                      ELSE locked_at
+                    END
+    WHERE user_id = #{userId}
+  </update>
+</mapper>

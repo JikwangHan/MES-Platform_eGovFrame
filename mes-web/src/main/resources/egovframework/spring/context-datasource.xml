@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+  <context:property-placeholder location="classpath:/config/jdbc.properties" />
+
+  <bean id="tenantDataSourceDefault" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+    <property name="driverClassName" value="${db.default.driver}" />
+    <property name="url" value="${db.default.url}" />
+    <property name="username" value="${db.default.username}" />
+    <property name="password" value="${db.default.password}" />
+  </bean>
+
+  <bean id="tenantDataSourceCompanyA" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+    <property name="driverClassName" value="${db.companyA.driver}" />
+    <property name="url" value="${db.companyA.url}" />
+    <property name="username" value="${db.companyA.username}" />
+    <property name="password" value="${db.companyA.password}" />
+  </bean>
+
+  <bean id="tenantRoutingDataSource" class="com.mes.web.common.tenant.TenantRoutingDataSource">
+    <property name="targetDataSources">
+      <map>
+        <entry key="default" value-ref="tenantDataSourceDefault" />
+        <entry key="companyA" value-ref="tenantDataSourceCompanyA" />
+      </map>
+    </property>
+    <property name="defaultTargetDataSource" ref="tenantDataSourceDefault" />
+  </bean>
+
+  <bean id="dataSource" class="org.springframework.jdbc.datasource.LazyConnectionDataSourceProxy">
+    <property name="targetDataSource" ref="tenantRoutingDataSource" />
+  </bean>
+</beans>

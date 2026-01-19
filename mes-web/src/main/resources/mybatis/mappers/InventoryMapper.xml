@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mes.web.dao.mapper.InventoryMapper">
+  <!--
+    목적: 재고 현황 조회 SQL을 정의한다.
+    기능: 조건 기준으로 재고 내역을 조회한다.
+    이유: 재고 화면 그리드에 데이터를 제공하기 위함이다.
+    유지보수: 실제 컬럼/조건 확정 시 쿼리를 수정한다.
+  -->
+  <select id="selectInventoryStatus" parameterType="map" resultType="map">
+    SELECT
+      1 AS sample_id,
+      'ITEM-0001' AS item_code,
+      100 AS stock_qty
+  </select>
+</mapper>

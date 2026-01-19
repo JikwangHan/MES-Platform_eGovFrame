@@ -1,0 +1,65 @@
+/* 목적: 공통 UI 스타일을 정의한다. 기능: 기본 레이아웃과 로그인 화면 스타일을 제공한다. 이유: 화면 골격을 빠르게 구성하기 위함이다. 유지보수: 디자인 고도화 시 이 파일을 수정한다. */
+body {
+  font-family: "Noto Sans KR", "Malgun Gothic", sans-serif;
+  margin: 0;
+  background: #f5f5f5;
+  color: #222;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: #1b1f24;
+  color: #fff;
+}
+
+.header .menu a,
+.header .user-actions a {
+  color: #fff;
+  margin-right: 12px;
+  text-decoration: none;
+}
+
+.content {
+  padding: 20px;
+}
+
+.footer {
+  padding: 12px 20px;
+  background: #e5e5e5;
+}
+
+.login-body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.login-card {
+  background: #fff;
+  padding: 24px;
+  width: 320px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.login-card input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 12px;
+}
+
+.error {
+  color: #b00020;
+  margin-bottom: 8px;
+}
+
+.grid {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 12px;
+  margin-top: 16px;
+}

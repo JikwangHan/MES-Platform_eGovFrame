@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mes.web.dao.mapper.AuditLogMapper">
+  <!--
+    목적: 감사 로그를 저장한다.
+    기능: 이벤트 유형/결과/상세를 DB에 기록한다.
+    이유: 감사 추적을 위해 필요하다.
+    유지보수: 컬럼 확장 시 INSERT 구문을 수정한다.
+  -->
+  <insert id="insertLog" parameterType="map">
+    INSERT INTO audit_logs (
+      event_type,
+      user_id,
+      result,
+      detail_hash,
+      created_at
+    ) VALUES (
+      #{params.eventType},
+      #{params.userId},
+      #{params.result},
+      #{params.detail},
+      NOW()
+    )
+  </insert>
+</mapper>

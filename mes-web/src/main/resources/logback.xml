@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <!-- 목적: 로그 출력 기본 설정을 정의한다. 기능: 콘솔 로그 레벨/포맷을 설정한다. 이유: 개발 단계 디버깅을 쉽게 하기 위함이다. 유지보수: 운영 전 파일/DB 로그로 확장한다. -->
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE" />
+  </root>
+</configuration>
