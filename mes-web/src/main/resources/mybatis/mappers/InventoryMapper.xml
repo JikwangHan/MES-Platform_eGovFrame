@@ -9,8 +9,68 @@
   -->
   <select id="selectInventoryStatus" parameterType="map" resultType="map">
     SELECT
-      1 AS sample_id,
-      'ITEM-0001' AS item_code,
-      100 AS stock_qty
+      s.id,
+      i.item_code,
+      i.item_name,
+      s.stock_qty,
+      s.stock_type
+    FROM inventory_status s
+    LEFT JOIN items i ON s.item_id = i.id
+    <where>
+      <if test="criteria.itemCode != null and criteria.itemCode != ''">
+        i.item_code = #{criteria.itemCode}
+      </if>
+    </where>
+    ORDER BY s.id DESC
   </select>
+
+  <!--
+    목적: 재고 등록 SQL을 정의한다.
+    기능: 재고 정보를 저장한다.
+    이유: 초기 재고 등록을 지원하기 위함이다.
+    유지보수: 컬럼 확정 시 필드를 보완한다.
+  -->
+  <insert id="insertInventoryStatus" parameterType="map">
+    INSERT INTO inventory_status (
+      item_id,
+      warehouse_id,
+      stock_qty,
+      stock_type,
+      last_in_date,
+      last_out_date
+    ) VALUES (
+      #{inventory.itemId},
+      #{inventory.warehouseId},
+      #{inventory.stockQty},
+      #{inventory.stockType},
+      #{inventory.lastInDate},
+      #{inventory.lastOutDate}
+    )
+  </insert>
+
+  <!--
+    목적: 재고 수정 SQL을 정의한다.
+    기능: 재고 수량과 상태를 갱신한다.
+    이유: 입출고 흐름을 반영하기 위함이다.
+    유지보수: 수정 가능 컬럼 변경 시 SQL을 수정한다.
+  -->
+  <update id="updateInventoryStatus" parameterType="map">
+    UPDATE inventory_status
+    SET stock_qty = #{inventory.stockQty},
+        stock_type = #{inventory.stockType},
+        last_in_date = #{inventory.lastInDate},
+        last_out_date = #{inventory.lastOutDate}
+    WHERE id = #{inventory.id}
+  </update>
+
+  <!--
+    목적: 재고 삭제 SQL을 정의한다.
+    기능: 재고 ID 기준으로 삭제한다.
+    이유: 삭제 요청을 처리하기 위함이다.
+    유지보수: 삭제 정책 변경 시 SQL을 수정한다.
+  -->
+  <delete id="deleteInventoryStatus" parameterType="long">
+    DELETE FROM inventory_status
+    WHERE id = #{id}
+  </delete>
 </mapper>

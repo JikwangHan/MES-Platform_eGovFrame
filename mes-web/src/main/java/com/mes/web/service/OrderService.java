@@ -18,4 +18,28 @@ public interface OrderService {
      * 유지보수: 검색 조건 확정 시 파라미터를 구체화한다.
      */
     List<Map<String, Object>> findOrders(Map<String, Object> criteria);
+
+    /**
+     * 목적: 수주를 등록한다.
+     * 기능: 수주 정보를 저장한다.
+     * 이유: 등록 기능을 제공하기 위함이다.
+     * 유지보수: 필수 컬럼 확정 시 파라미터를 보완한다.
+     */
+    int createOrder(Map<String, Object> order);
+
+    /**
+     * 목적: 수주를 수정한다.
+     * 기능: 수주 정보를 갱신한다.
+     * 이유: 수정 기능을 제공하기 위함이다.
+     * 유지보수: 수정 가능 컬럼 변경 시 SQL을 수정한다.
+     */
+    int updateOrder(Map<String, Object> order);
+
+    /**
+     * 목적: 수주를 삭제한다.
+     * 기능: 수주 번호 기준으로 삭제한다.
+     * 이유: 삭제 기능을 제공하기 위함이다.
+     * 유지보수: 삭제 정책 변경 시 SQL을 수정한다.
+     */
+    int deleteOrder(String orderNo);
 }

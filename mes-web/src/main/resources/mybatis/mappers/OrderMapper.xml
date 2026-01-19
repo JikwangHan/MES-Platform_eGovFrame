@@ -9,9 +9,79 @@
   -->
   <select id="selectOrders" parameterType="map" resultType="map">
     SELECT
-      1 AS sample_id,
-      'ORDER-0001' AS order_no,
-      'SAMPLE_ITEM' AS item_name,
-      10 AS order_qty
+      o.order_no,
+      o.order_date,
+      o.due_date,
+      i.item_name,
+      o.order_qty,
+      o.status
+    FROM orders o
+    LEFT JOIN items i ON o.item_id = i.id
+    <where>
+      <if test="criteria.orderNo != null and criteria.orderNo != ''">
+        o.order_no = #{criteria.orderNo}
+      </if>
+      <if test="criteria.status != null and criteria.status != ''">
+        AND o.status = #{criteria.status}
+      </if>
+    </where>
+    ORDER BY o.id DESC
   </select>
+
+  <!--
+    목적: 수주 등록 SQL을 정의한다.
+    기능: 수주 정보를 저장한다.
+    이유: 수주 CRUD의 등록을 처리하기 위함이다.
+    유지보수: 컬럼 확정 시 필드를 보완한다.
+  -->
+  <insert id="insertOrder" parameterType="map">
+    INSERT INTO orders (
+      order_no,
+      order_date,
+      due_date,
+      item_id,
+      order_qty,
+      status,
+      partner_id,
+      owner_id
+    ) VALUES (
+      #{order.orderNo},
+      #{order.orderDate},
+      #{order.dueDate},
+      #{order.itemId},
+      #{order.orderQty},
+      #{order.status},
+      #{order.partnerId},
+      #{order.ownerId}
+    )
+  </insert>
+
+  <!--
+    목적: 수주 수정 SQL을 정의한다.
+    기능: 수주 정보를 갱신한다.
+    이유: 수정 흐름을 제공하기 위함이다.
+    유지보수: 수정 가능 컬럼 변경 시 SQL을 수정한다.
+  -->
+  <update id="updateOrder" parameterType="map">
+    UPDATE orders
+    SET order_date = #{order.orderDate},
+        due_date = #{order.dueDate},
+        item_id = #{order.itemId},
+        order_qty = #{order.orderQty},
+        status = #{order.status},
+        partner_id = #{order.partnerId},
+        owner_id = #{order.ownerId}
+    WHERE order_no = #{order.orderNo}
+  </update>
+
+  <!--
+    목적: 수주 삭제 SQL을 정의한다.
+    기능: 수주 번호 기준으로 삭제한다.
+    이유: 삭제 요청을 처리하기 위함이다.
+    유지보수: 삭제 정책 변경 시 SQL을 수정한다.
+  -->
+  <delete id="deleteOrder" parameterType="string">
+    DELETE FROM orders
+    WHERE order_no = #{orderNo}
+  </delete>
 </mapper>

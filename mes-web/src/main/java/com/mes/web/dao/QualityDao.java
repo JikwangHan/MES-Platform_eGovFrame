@@ -1,6 +1,5 @@
 package com.mes.web.dao;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -11,7 +10,7 @@ import com.mes.web.dao.mapper.QualityMapper;
 
 /**
  * 목적: 품질 데이터 접근을 담당한다.
- * 기능: MyBatis 매퍼를 통해 불량 조회를 수행한다.
+ * 기능: 불량 조회/등록/삭제를 수행한다.
  * 이유: 서비스 계층과 SQL 매퍼를 분리하기 위함이다.
  * 유지보수: 쿼리 변경 시 매퍼 XML과 함께 수정한다.
  */
@@ -38,9 +37,26 @@ public class QualityDao {
      * 유지보수: 필터 확정 시 criteria 구조를 구체화한다.
      */
     public List<Map<String, Object>> selectDefects(Map<String, Object> criteria) {
-        if (qualityMapper == null) {
-            return Collections.emptyList();
-        }
         return qualityMapper.selectDefects(criteria);
+    }
+
+    /**
+     * 목적: 불량을 등록한다.
+     * 기능: 불량 정보를 저장한다.
+     * 이유: 등록 기능을 제공하기 위함이다.
+     * 유지보수: 필수 컬럼 확정 시 파라미터를 보완한다.
+     */
+    public int insertDefect(Map<String, Object> defect) {
+        return qualityMapper.insertDefect(defect);
+    }
+
+    /**
+     * 목적: 불량을 삭제한다.
+     * 기능: 불량 ID 기준으로 삭제한다.
+     * 이유: 삭제 기능을 제공하기 위함이다.
+     * 유지보수: 삭제 정책 변경 시 SQL을 수정한다.
+     */
+    public int deleteDefect(long id) {
+        return qualityMapper.deleteDefect(id);
     }
 }

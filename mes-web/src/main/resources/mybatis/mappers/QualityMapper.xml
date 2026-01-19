@@ -9,8 +9,52 @@
   -->
   <select id="selectDefects" parameterType="map" resultType="map">
     SELECT
-      1 AS sample_id,
-      'DEFECT-0001' AS defect_code,
-      2 AS defect_qty
+      d.id,
+      d.defect_date,
+      i.item_name,
+      d.defect_qty
+    FROM defects d
+    LEFT JOIN items i ON d.item_id = i.id
+    <where>
+      <if test="criteria.itemId != null">
+        d.item_id = #{criteria.itemId}
+      </if>
+    </where>
+    ORDER BY d.id DESC
   </select>
+
+  <!--
+    목적: 불량 등록 SQL을 정의한다.
+    기능: 불량 정보를 저장한다.
+    이유: 불량 등록 기능을 제공하기 위함이다.
+    유지보수: 컬럼 확정 시 필드를 보완한다.
+  -->
+  <insert id="insertDefect" parameterType="map">
+    INSERT INTO defects (
+      defect_date,
+      item_id,
+      process_id,
+      equipment_id,
+      defect_type_id,
+      defect_qty
+    ) VALUES (
+      #{defect.defectDate},
+      #{defect.itemId},
+      #{defect.processId},
+      #{defect.equipmentId},
+      #{defect.defectTypeId},
+      #{defect.defectQty}
+    )
+  </insert>
+
+  <!--
+    목적: 불량 삭제 SQL을 정의한다.
+    기능: 불량 ID 기준으로 삭제한다.
+    이유: 삭제 요청을 처리하기 위함이다.
+    유지보수: 삭제 정책 변경 시 SQL을 수정한다.
+  -->
+  <delete id="deleteDefect" parameterType="long">
+    DELETE FROM defects
+    WHERE id = #{id}
+  </delete>
 </mapper>

@@ -11,9 +11,9 @@ import com.mes.web.service.OrderService;
 
 /**
  * 목적: 수주 서비스의 기본 구현을 제공한다.
- * 기능: 임시로 빈 목록을 반환한다.
- * 이유: 화면 골격을 먼저 완성하고 데이터 연동을 단계적으로 진행하기 위함이다.
- * 유지보수: 실제 DAO 연동 시 구현을 확장한다.
+ * 기능: 수주 CRUD 로직을 DAO로 위임한다.
+ * 이유: 서비스 계층에서 흐름을 통제하기 위함이다.
+ * 유지보수: 추가 검증 로직이 필요하면 여기에서 보완한다.
  */
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -34,11 +34,44 @@ public class OrderServiceImpl implements OrderService {
     /**
      * 목적: 수주 목록을 조회한다.
      * 기능: DAO를 통해 수주 목록을 조회한다.
-     * 이유: DB 연동 구조를 미리 확보하기 위함이다.
+     * 이유: DB 연동 구조를 유지하기 위함이다.
      * 유지보수: 조건 확정 시 criteria 구조를 보완한다.
      */
     @Override
     public List<Map<String, Object>> findOrders(Map<String, Object> criteria) {
         return orderDao.selectOrders(criteria);
+    }
+
+    /**
+     * 목적: 수주를 등록한다.
+     * 기능: DAO를 통해 수주 정보를 저장한다.
+     * 이유: 등록 기능을 제공하기 위함이다.
+     * 유지보수: 검증 규칙이 추가되면 여기서 처리한다.
+     */
+    @Override
+    public int createOrder(Map<String, Object> order) {
+        return orderDao.insertOrder(order);
+    }
+
+    /**
+     * 목적: 수주를 수정한다.
+     * 기능: DAO를 통해 수주 정보를 갱신한다.
+     * 이유: 수정 기능을 제공하기 위함이다.
+     * 유지보수: 수정 조건 확정 시 로직을 보완한다.
+     */
+    @Override
+    public int updateOrder(Map<String, Object> order) {
+        return orderDao.updateOrder(order);
+    }
+
+    /**
+     * 목적: 수주를 삭제한다.
+     * 기능: DAO를 통해 수주를 삭제한다.
+     * 이유: 삭제 기능을 제공하기 위함이다.
+     * 유지보수: 삭제 정책 변경 시 로직을 보완한다.
+     */
+    @Override
+    public int deleteOrder(String orderNo) {
+        return orderDao.deleteOrder(orderNo);
     }
 }

@@ -6,7 +6,7 @@
 -- 주의: password_hash는 BCrypt 해시로 교체해야 한다.
 -- 예: java BCryptPasswordEncoder로 생성한 해시 값을 입력한다.
 INSERT INTO users (user_id, user_name, password_hash, role, status)
-VALUES ('admin', '관리자', '{BCryptHashHere}', 'SYSTEM_ADMIN', 'active');
+VALUES ('admin', '관리자', '$2a$10$23kDjTEajlF.pz3AJ6J.9OZVPCpb7e7XOfLagrQ45g33NRj2e9BOa', 'SYSTEM_ADMIN', 'active');
 
 INSERT INTO partners (partner_code, partner_name, status)
 VALUES ('P-0001', '샘플 거래처', 'active');

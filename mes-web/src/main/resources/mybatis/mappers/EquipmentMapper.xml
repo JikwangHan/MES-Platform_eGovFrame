@@ -9,8 +9,79 @@
   -->
   <select id="selectEquipmentStatus" parameterType="map" resultType="map">
     SELECT
-      1 AS sample_id,
-      'EQ-0001' AS equipment_code,
-      'RUN' AS status
+      equipment_code,
+      equipment_name,
+      equipment_type,
+      status
+    FROM equipments
+    <where>
+      <if test="criteria.equipmentCode != null and criteria.equipmentCode != ''">
+        equipment_code = #{criteria.equipmentCode}
+      </if>
+      <if test="criteria.status != null and criteria.status != ''">
+        AND status = #{criteria.status}
+      </if>
+    </where>
+    ORDER BY id DESC
   </select>
+
+  <!--
+    목적: 설비 등록 SQL을 정의한다.
+    기능: 설비 정보를 저장한다.
+    이유: 설비 등록 기능을 제공하기 위함이다.
+    유지보수: 컬럼 확정 시 필드를 보완한다.
+  -->
+  <insert id="insertEquipment" parameterType="map">
+    INSERT INTO equipments (
+      equipment_code,
+      equipment_name,
+      equipment_type,
+      status,
+      ip_address,
+      port_number,
+      com_port,
+      baud_rate,
+      polling_interval
+    ) VALUES (
+      #{equipment.equipmentCode},
+      #{equipment.equipmentName},
+      #{equipment.equipmentType},
+      #{equipment.status},
+      #{equipment.ipAddress},
+      #{equipment.portNumber},
+      #{equipment.comPort},
+      #{equipment.baudRate},
+      #{equipment.pollingInterval}
+    )
+  </insert>
+
+  <!--
+    목적: 설비 수정 SQL을 정의한다.
+    기능: 설비 정보를 갱신한다.
+    이유: 수정 기능을 제공하기 위함이다.
+    유지보수: 수정 가능 컬럼 변경 시 SQL을 수정한다.
+  -->
+  <update id="updateEquipment" parameterType="map">
+    UPDATE equipments
+    SET equipment_name = #{equipment.equipmentName},
+        equipment_type = #{equipment.equipmentType},
+        status = #{equipment.status},
+        ip_address = #{equipment.ipAddress},
+        port_number = #{equipment.portNumber},
+        com_port = #{equipment.comPort},
+        baud_rate = #{equipment.baudRate},
+        polling_interval = #{equipment.pollingInterval}
+    WHERE equipment_code = #{equipment.equipmentCode}
+  </update>
+
+  <!--
+    목적: 설비 삭제 SQL을 정의한다.
+    기능: 설비 코드 기준으로 삭제한다.
+    이유: 삭제 요청을 처리하기 위함이다.
+    유지보수: 삭제 정책 변경 시 SQL을 수정한다.
+  -->
+  <delete id="deleteEquipment" parameterType="string">
+    DELETE FROM equipments
+    WHERE equipment_code = #{equipmentCode}
+  </delete>
 </mapper>

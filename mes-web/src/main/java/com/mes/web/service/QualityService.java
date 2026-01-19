@@ -5,7 +5,7 @@ import java.util.Map;
 
 /**
  * 목적: 품질 관련 비즈니스 로직을 정의한다.
- * 기능: 불량 현황/내역 조회 계약을 제공한다.
+ * 기능: 불량 조회/등록/삭제 계약을 제공한다.
  * 이유: 품질 화면 로직을 서비스 계층에 모으기 위함이다.
  * 유지보수: 그래프/통계 로직 확정 시 메서드를 확장한다.
  */
@@ -18,4 +18,20 @@ public interface QualityService {
      * 유지보수: 조건/필드 확정 시 파라미터를 구체화한다.
      */
     List<Map<String, Object>> findDefects(Map<String, Object> criteria);
+
+    /**
+     * 목적: 불량을 등록한다.
+     * 기능: 불량 정보를 저장한다.
+     * 이유: 등록 기능을 제공하기 위함이다.
+     * 유지보수: 필수 컬럼 확정 시 파라미터를 보완한다.
+     */
+    int createDefect(Map<String, Object> defect);
+
+    /**
+     * 목적: 불량을 삭제한다.
+     * 기능: 불량 ID 기준으로 삭제한다.
+     * 이유: 삭제 기능을 제공하기 위함이다.
+     * 유지보수: 삭제 정책 변경 시 SQL을 수정한다.
+     */
+    int deleteDefect(long id);
 }
