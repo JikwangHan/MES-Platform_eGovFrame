@@ -34,3 +34,7 @@ MES Web Service 스모크 테스트 기록
 CRUD 스모크(서버 기동 후)
 - 결과 요약: 수주/작업/재고/품질/설비 create/update/delete 응답 result=success 확인
 - 비고: 테스트용 데이터는 생성 후 즉시 정리함
+
+CRUD 스모크(companyA 테넌트)
+- 결과 요약: companyA 테넌트에서 수주/작업/재고/품질/설비 create/update/delete 응답 result=success 확인
+- 비고: 테스트용 데이터는 생성 후 즉시 정리함

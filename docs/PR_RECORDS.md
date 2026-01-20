@@ -157,3 +157,9 @@
 - 변경 이유: 실제 CRUD 호출 결과를 문서로 증빙해 PR 정책을 충족하기 위함
 - 검증 방법: 서버 기동 후 수주/작업/재고/품질/설비 CRUD 스모크 수행
 - 결과: create/update/delete 응답 result=success 확인
+
+## PR-28 기록
+- 변경 요약: companyA 테넌트 CRUD 스모크 결과 문서 업데이트
+- 변경 이유: 멀티테넌트 CRUD 동작을 문서로 증빙하기 위함
+ - 검증 방법: 서버 기동 후 companyA 테넌트 CRUD 스모크 수행
+- 결과: create/update/delete 응답 result=success 확인
