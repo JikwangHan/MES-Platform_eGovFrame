@@ -28,4 +28,5 @@ MES Web Service 스모크 테스트 기록
 - 설비: /api/equipment/list, /api/equipment/create, /api/equipment/update, /api/equipment/delete
 
 실행 결과
-- API 스모크는 서버 기동 후 수행 예정
+- API 스모크(조회)는 서버 기동 후 수행 완료
+- 결과 요약: 수주/작업/재고/품질/설비 조회 응답 result=success 확인
