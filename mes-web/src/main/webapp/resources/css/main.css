@@ -63,3 +63,33 @@ body {
   padding: 12px;
   margin-top: 16px;
 }
+
+.form-section {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 12px;
+  margin-top: 16px;
+}
+
+.form-section label {
+  display: block;
+  margin-top: 8px;
+  font-weight: bold;
+}
+
+.form-section input {
+  width: 100%;
+  padding: 6px;
+  margin-top: 4px;
+}
+
+.form-actions {
+  margin-top: 12px;
+}
+
+.result-box {
+  background: #f0f0f0;
+  padding: 8px;
+  margin-top: 12px;
+  white-space: pre-wrap;
+}
