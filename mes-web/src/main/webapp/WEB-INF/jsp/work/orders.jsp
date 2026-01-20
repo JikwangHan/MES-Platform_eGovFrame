@@ -12,6 +12,34 @@
   <div class="content">
     <h2>작업 관리</h2>
     <p>작업 관리 CRUD</p>
+    <div class="form-section">
+      <form id="workForm">
+        <label>작업번호</label>
+        <input type="text" name="workNo" placeholder="WORK-0001" />
+        <label>수주 ID</label>
+        <input type="text" name="orderId" placeholder="1" />
+        <label>계획 시작일(YYYY-MM-DD)</label>
+        <input type="text" name="planStartDate" placeholder="2026-01-01" />
+        <label>계획 종료일(YYYY-MM-DD)</label>
+        <input type="text" name="planEndDate" placeholder="2026-01-05" />
+        <label>계획 수량</label>
+        <input type="text" name="planQty" placeholder="10" />
+        <label>상태</label>
+        <input type="text" name="status" placeholder="planned" />
+        <label>담당자 ID</label>
+        <input type="text" name="ownerId" placeholder="1" />
+        <label>요청자 ID(감사로그용)</label>
+        <input type="text" name="userId" placeholder="admin" />
+      </form>
+      <div class="form-actions">
+        <button type="button" onclick="MesWeb.post('/api/work/list', 'workForm', 'workResult')">조회</button>
+        <button type="button" onclick="MesWeb.post('/api/work/create', 'workForm', 'workResult')">등록</button>
+        <button type="button" onclick="MesWeb.post('/api/work/update', 'workForm', 'workResult')">수정</button>
+        <button type="button" onclick="MesWeb.post('/api/work/status', 'workForm', 'workResult')">상태변경</button>
+        <button type="button" onclick="MesWeb.post('/api/work/delete', 'workForm', 'workResult')">삭제</button>
+      </div>
+      <pre id="workResult" class="result-box"></pre>
+    </div>
   <%@ include file="/WEB-INF/jsp/common/grid.jsp" %>
   <%@ include file="/WEB-INF/jsp/common/modal.jsp" %>
   </div>

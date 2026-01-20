@@ -12,6 +12,18 @@
   <div class="content">
     <h2>작업 현황</h2>
     <p>작업 상태 그리드</p>
+    <div class="form-section">
+      <form id="workStatusForm">
+        <label>작업번호</label>
+        <input type="text" name="workNo" placeholder="WORK-0001" />
+        <label>상태</label>
+        <input type="text" name="status" placeholder="planned" />
+      </form>
+      <div class="form-actions">
+        <button type="button" onclick="MesWeb.post('/api/work/list', 'workStatusForm', 'workStatusResult')">조회</button>
+      </div>
+      <pre id="workStatusResult" class="result-box"></pre>
+    </div>
   <%@ include file="/WEB-INF/jsp/common/grid.jsp" %>
   </div>
   <%@ include file="/WEB-INF/jsp/common/footer.jsp" %>

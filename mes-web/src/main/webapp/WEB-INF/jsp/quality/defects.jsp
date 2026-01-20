@@ -12,6 +12,32 @@
   <div class="content">
     <h2>불량 내역</h2>
     <p>불량 내역 그리드</p>
+    <div class="form-section">
+      <form id="defectForm">
+        <label>불량 ID(삭제용)</label>
+        <input type="text" name="id" placeholder="1" />
+        <label>불량일자(YYYY-MM-DD)</label>
+        <input type="text" name="defectDate" placeholder="2026-01-01" />
+        <label>품목 ID</label>
+        <input type="text" name="itemId" placeholder="1" />
+        <label>공정 ID</label>
+        <input type="text" name="processId" placeholder="1" />
+        <label>설비 ID</label>
+        <input type="text" name="equipmentId" placeholder="1" />
+        <label>불량 유형 ID</label>
+        <input type="text" name="defectTypeId" placeholder="1" />
+        <label>불량 수량</label>
+        <input type="text" name="defectQty" placeholder="2" />
+        <label>요청자 ID(감사로그용)</label>
+        <input type="text" name="userId" placeholder="admin" />
+      </form>
+      <div class="form-actions">
+        <button type="button" onclick="MesWeb.post('/api/quality/defects/list', 'defectForm', 'defectResult')">조회</button>
+        <button type="button" onclick="MesWeb.post('/api/quality/defects/create', 'defectForm', 'defectResult')">등록</button>
+        <button type="button" onclick="MesWeb.post('/api/quality/defects/delete', 'defectForm', 'defectResult')">삭제</button>
+      </div>
+      <pre id="defectResult" class="result-box"></pre>
+    </div>
   <%@ include file="/WEB-INF/jsp/common/grid.jsp" %>
   <%@ include file="/WEB-INF/jsp/common/modal.jsp" %>
   </div>

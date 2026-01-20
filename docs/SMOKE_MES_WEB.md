@@ -19,3 +19,13 @@ MES Web Service 스모크 테스트 기록
 주의
 - 본 문서는 스모크 테스트 요약만 기록한다.
 - 상세 실행 로그/민감정보는 저장하지 않는다.
+
+추가 시나리오(서버 기동 후)
+- 수주: /api/orders/list, /api/orders/create, /api/orders/update, /api/orders/delete
+- 작업: /api/work/list, /api/work/create, /api/work/update, /api/work/status, /api/work/delete
+- 재고: /api/inventory/list, /api/inventory/create, /api/inventory/update, /api/inventory/delete
+- 품질: /api/quality/defects/list, /api/quality/defects/create, /api/quality/defects/delete
+- 설비: /api/equipment/list, /api/equipment/create, /api/equipment/update, /api/equipment/delete
+
+실행 결과
+- API 스모크는 서버 기동 후 수행 예정

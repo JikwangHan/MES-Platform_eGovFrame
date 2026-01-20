@@ -12,6 +12,16 @@
   <div class="content">
     <h2>불량 현황</h2>
     <p>불량 현황 그래프</p>
+    <div class="form-section">
+      <form id="defectStatusForm">
+        <label>품목 ID</label>
+        <input type="text" name="itemId" placeholder="1" />
+      </form>
+      <div class="form-actions">
+        <button type="button" onclick="MesWeb.post('/api/quality/defects/list', 'defectStatusForm', 'defectStatusResult')">조회</button>
+      </div>
+      <pre id="defectStatusResult" class="result-box"></pre>
+    </div>
   <%@ include file="/WEB-INF/jsp/common/grid.jsp" %>
   </div>
   <%@ include file="/WEB-INF/jsp/common/footer.jsp" %>

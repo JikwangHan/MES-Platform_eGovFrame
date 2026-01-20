@@ -12,6 +12,37 @@
   <div class="content">
     <h2>설비 등록</h2>
     <p>설비 등록 CRUD</p>
+    <div class="form-section">
+      <form id="equipmentForm">
+        <label>설비 코드</label>
+        <input type="text" name="equipmentCode" placeholder="EQ-0001" />
+        <label>설비명</label>
+        <input type="text" name="equipmentName" placeholder="샘플 설비" />
+        <label>설비 유형</label>
+        <input type="text" name="equipmentType" placeholder="PRESS" />
+        <label>상태</label>
+        <input type="text" name="status" placeholder="idle" />
+        <label>IP 주소</label>
+        <input type="text" name="ipAddress" placeholder="192.168.0.10" />
+        <label>포트</label>
+        <input type="text" name="portNumber" placeholder="502" />
+        <label>COM 포트</label>
+        <input type="text" name="comPort" placeholder="COM3" />
+        <label>통신 속도</label>
+        <input type="text" name="baudRate" placeholder="9600" />
+        <label>폴링 주기(ms)</label>
+        <input type="text" name="pollingInterval" placeholder="1000" />
+        <label>요청자 ID(감사로그용)</label>
+        <input type="text" name="userId" placeholder="admin" />
+      </form>
+      <div class="form-actions">
+        <button type="button" onclick="MesWeb.post('/api/equipment/list', 'equipmentForm', 'equipmentResult')">조회</button>
+        <button type="button" onclick="MesWeb.post('/api/equipment/create', 'equipmentForm', 'equipmentResult')">등록</button>
+        <button type="button" onclick="MesWeb.post('/api/equipment/update', 'equipmentForm', 'equipmentResult')">수정</button>
+        <button type="button" onclick="MesWeb.post('/api/equipment/delete', 'equipmentForm', 'equipmentResult')">삭제</button>
+      </div>
+      <pre id="equipmentResult" class="result-box"></pre>
+    </div>
   <%@ include file="/WEB-INF/jsp/common/grid.jsp" %>
   <%@ include file="/WEB-INF/jsp/common/modal.jsp" %>
   </div>

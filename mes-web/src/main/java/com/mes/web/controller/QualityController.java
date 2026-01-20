@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.mes.web.common.audit.AuditLogService;
 import com.mes.web.service.QualityService;
 
 /**
@@ -23,6 +24,7 @@ import com.mes.web.service.QualityService;
 public class QualityController {
 
     private final QualityService qualityService;
+    private final AuditLogService auditLogService;
 
     /**
      * 목적: 품질 서비스를 주입받는다.
@@ -31,8 +33,9 @@ public class QualityController {
      * 유지보수: 서비스 교체 시 주입만 변경한다.
      */
     @Autowired
-    public QualityController(QualityService qualityService) {
+    public QualityController(QualityService qualityService, AuditLogService auditLogService) {
         this.qualityService = qualityService;
+        this.auditLogService = auditLogService;
     }
 
     /**
@@ -93,7 +96,13 @@ public class QualityController {
     @PostMapping("/api/quality/defects/create")
     @ResponseBody
     public Map<String, Object> create(@RequestParam Map<String, Object> defect) {
+        String validationError = validateCreate(defect);
+        if (validationError != null) {
+            return buildFail(validationError);
+        }
         int count = qualityService.createDefect(defect);
+        auditLogService.logEvent("defect_create", count > 0 ? "success" : "fail", getUserId(defect),
+                "itemId=" + defect.get("itemId"));
         Map<String, Object> result = new HashMap<String, Object>();
         result.put("result", count > 0 ? "success" : "fail");
         result.put("affectedRows", count);
@@ -109,10 +118,70 @@ public class QualityController {
     @PostMapping("/api/quality/defects/delete")
     @ResponseBody
     public Map<String, Object> delete(@RequestParam("id") long id) {
+        if (id <= 0) {
+            return buildFail("불량 ID는 필수입니다.");
+        }
         int count = qualityService.deleteDefect(id);
+        auditLogService.logEvent("defect_delete", count > 0 ? "success" : "fail", null, "id=" + id);
         Map<String, Object> result = new HashMap<String, Object>();
         result.put("result", count > 0 ? "success" : "fail");
         result.put("affectedRows", count);
         return result;
+    }
+
+    /**
+     * 목적: 불량 등록 필수 값을 검증한다.
+     * 기능: 필수 값 누락 시 오류 메시지를 반환한다.
+     * 이유: 잘못된 입력을 사전에 차단하기 위함이다.
+     * 유지보수: 필수 값 변경 시 항목을 조정한다.
+     */
+    private String validateCreate(Map<String, Object> defect) {
+        if (isBlank(defect.get("defectDate"))) {
+            return "불량일자는 필수입니다.";
+        }
+        if (isBlank(defect.get("itemId"))) {
+            return "품목 ID는 필수입니다.";
+        }
+        if (isBlank(defect.get("defectQty"))) {
+            return "불량 수량은 필수입니다.";
+        }
+        return null;
+    }
+
+    /**
+     * 목적: 공백 여부를 확인한다.
+     * 기능: null 또는 빈 문자열인지 검사한다.
+     * 이유: 입력 검증을 단순화하기 위함이다.
+     * 유지보수: 검증 규칙 변경 시 로직을 보완한다.
+     */
+    private boolean isBlank(Object value) {
+        return value == null || value.toString().trim().isEmpty();
+    }
+
+    /**
+     * 목적: 실패 응답을 생성한다.
+     * 기능: 실패 결과와 메시지를 반환한다.
+     * 이유: 응답 형식을 통일하기 위함이다.
+     * 유지보수: 응답 포맷 변경 시 수정한다.
+     */
+    private Map<String, Object> buildFail(String message) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        result.put("result", "fail");
+        result.put("message", message);
+        return result;
+    }
+
+    /**
+     * 목적: 사용자 ID를 추출한다.
+     * 기능: 요청 파라미터에서 userId를 찾는다.
+     * 이유: 감사 로그에 최소한의 사용자 정보를 남기기 위함이다.
+     * 유지보수: 세션 기반 추적으로 변경 시 수정한다.
+     */
+    private String getUserId(Map<String, Object> defect) {
+        Object userId = defect.get("userId");
+        if (userId == null) {
+            return null;
+        }
+        return userId.toString();
     }
 }
