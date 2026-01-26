@@ -21,6 +21,30 @@ public interface UserMapper {
     Map<String, Object> findByUserId(@Param("userId") String userId);
 
     /**
+     * 목적: 아이디 중복 여부를 확인한다.
+     * 기능: user_id 기준으로 등록된 사용자 수를 반환한다.
+     * 이유: 회원가입 중복을 방지하기 위함이다.
+     * 유지보수: 중복 기준 변경 시 SQL을 수정한다.
+     */
+    int countByUserId(@Param("userId") String userId);
+
+    /**
+     * 목적: 신규 사용자 정보를 저장한다.
+     * 기능: 회원가입 입력값을 DB에 저장한다.
+     * 이유: 인증 대상 사용자를 생성하기 위함이다.
+     * 유지보수: 컬럼 추가 시 SQL을 수정한다.
+     */
+    void insertUser(@Param("payload") java.util.Map<String, Object> payload);
+
+    /**
+     * 목적: 사용자 상태를 갱신한다.
+     * 기능: user_id 기준으로 status를 업데이트한다.
+     * 이유: 인증/승인 흐름에 필요한 상태 전환을 지원하기 위함이다.
+     * 유지보수: 상태 정책 변경 시 SQL을 수정한다.
+     */
+    void updateUserStatus(@Param("userId") String userId, @Param("status") String status);
+
+    /**
      * 목적: 로그인 성공 기록을 남긴다.
      * 기능: 마지막 로그인 시간과 실패 횟수를 초기화한다.
      * 이유: 계정 잠금 정책을 정상화하기 위함이다.
