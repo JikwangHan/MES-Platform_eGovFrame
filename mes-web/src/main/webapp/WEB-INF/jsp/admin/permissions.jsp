@@ -22,10 +22,9 @@
           <tr>
             <th>구분</th>
             <th>권한</th>
-            <th>SYSTEM_ADMIN</th>
-            <th>MANAGER</th>
-            <th>OPERATOR</th>
-            <th>VIEWER</th>
+            <c:forEach var="role" items="${roles}">
+              <th>${role}</th>
+            </c:forEach>
           </tr>
         </thead>
         <tbody>
@@ -36,22 +35,12 @@
                   <td class="group" rowspan="${fn:length(group.items)}">${group.name}</td>
                 </c:if>
                 <td>${item.label}</td>
-                <td class="center">
-                  <input type="checkbox" class="perm-checkbox" data-role="SYSTEM_ADMIN" data-key="${item.key}"
-                         ${rolePermissions['SYSTEM_ADMIN'][item.key] ? 'checked' : ''} />
-                </td>
-                <td class="center">
-                  <input type="checkbox" class="perm-checkbox" data-role="MANAGER" data-key="${item.key}"
-                         ${rolePermissions['MANAGER'][item.key] ? 'checked' : ''} />
-                </td>
-                <td class="center">
-                  <input type="checkbox" class="perm-checkbox" data-role="OPERATOR" data-key="${item.key}"
-                         ${rolePermissions['OPERATOR'][item.key] ? 'checked' : ''} />
-                </td>
-                <td class="center">
-                  <input type="checkbox" class="perm-checkbox" data-role="VIEWER" data-key="${item.key}"
-                         ${rolePermissions['VIEWER'][item.key] ? 'checked' : ''} />
-                </td>
+                <c:forEach var="role" items="${roles}">
+                  <td class="center">
+                    <input type="checkbox" class="perm-checkbox" data-role="${role}" data-key="${item.key}"
+                           ${rolePermissions[role][item.key] ? 'checked' : ''} />
+                  </td>
+                </c:forEach>
               </tr>
             </c:forEach>
           </c:forEach>
@@ -62,10 +51,9 @@
       <form id="permissionSaveForm" method="post" action="${pageContext.request.contextPath}/admin/permissions/save">
         <label>저장 대상 역할</label>
         <select id="roleSelect" name="roleCode">
-          <option value="SYSTEM_ADMIN">SYSTEM_ADMIN</option>
-          <option value="MANAGER">MANAGER</option>
-          <option value="OPERATOR">OPERATOR</option>
-          <option value="VIEWER">VIEWER</option>
+          <c:forEach var="role" items="${roles}">
+            <option value="${role}">${role}</option>
+          </c:forEach>
         </select>
         <button type="button" onclick="savePermissions()">권한 저장</button>
       </form>

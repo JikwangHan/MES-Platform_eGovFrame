@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mes.web.dao.mapper.RoleMapper">
+  <!--
+    목적: 역할 목록을 조회한다.
+    기능: 역할 정보를 리스트로 반환한다.
+    이유: 관리자 화면에서 역할 목록을 표시하기 위함이다.
+    유지보수: 컬럼 확장 시 SQL을 수정한다.
+  -->
+  <select id="selectRoles" resultType="map">
+    SELECT
+      role_code AS roleCode,
+      role_name AS roleName,
+      role_desc AS roleDesc,
+      status AS status
+    FROM roles
+    ORDER BY role_code
+  </select>
+
+  <!--
+    목적: 역할을 등록한다.
+    기능: 역할 코드/이름/설명을 저장한다.
+    이유: 역할 추가 기능을 제공하기 위함이다.
+    유지보수: 저장 컬럼 확장 시 SQL을 수정한다.
+  -->
+  <insert id="insertRole" parameterType="map">
+    INSERT INTO roles (
+      role_code,
+      role_name,
+      role_desc,
+      status
+    ) VALUES (
+      #{params.roleCode},
+      #{params.roleName},
+      #{params.roleDesc},
+      'active'
+    )
+  </insert>
+
+  <!--
+    목적: 역할을 삭제한다.
+    기능: 역할 코드 기준으로 삭제한다.
+    이유: 역할 정리 기능을 제공하기 위함이다.
+    유지보수: 삭제 조건 변경 시 SQL을 수정한다.
+  -->
+  <delete id="deleteRole" parameterType="string">
+    DELETE FROM roles
+    WHERE role_code = #{roleCode}
+  </delete>
+
+  <!--
+    목적: 역할에 연결된 사용자 수를 조회한다.
+    기능: 역할 코드 기준 사용자 수를 반환한다.
+    이유: 사용 중인 역할 삭제를 차단하기 위함이다.
+    유지보수: 사용자 테이블 구조 변경 시 SQL을 보완한다.
+  -->
+  <select id="countUsersByRole" resultType="int">
+    SELECT COUNT(*) FROM users WHERE role = #{roleCode}
+  </select>
+</mapper>

@@ -26,6 +26,8 @@ MES Web Service 스모크 테스트 기록
 - 재고: /api/inventory/list, /api/inventory/create, /api/inventory/update, /api/inventory/delete
 - 품질: /api/quality/defects/list, /api/quality/defects/create, /api/quality/defects/delete
 - 설비: /api/equipment/list, /api/equipment/create, /api/equipment/update, /api/equipment/delete
+- 역할: /admin/roles 접근, /admin/roles/create, /admin/roles/delete
+- 권한: SYSTEM_ADMIN에서 관리 메뉴 권한 해제 시 차단 메시지 확인
 
 실행 결과
 - API 스모크(조회)는 서버 기동 후 수행 완료

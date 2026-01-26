@@ -12,6 +12,13 @@
   <div class="content">
     <h2>사용자 관리</h2>
     <p>사용자 그리드</p>
+    <div class="form-section">
+      <h3>관리 메뉴</h3>
+      <div class="form-actions">
+        <a href="${pageContext.request.contextPath}/admin/roles">역할 관리</a>
+        <a href="${pageContext.request.contextPath}/admin/permissions">권한 매트릭스</a>
+      </div>
+    </div>
   <%@ include file="/WEB-INF/jsp/common/grid.jsp" %>
   <%@ include file="/WEB-INF/jsp/common/modal.jsp" %>
   </div>

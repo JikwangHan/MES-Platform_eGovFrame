@@ -198,6 +198,10 @@ public class QualityController {
         if (message != null) {
             return message;
         }
+        message = ValidationUtils.validateDateRange(criteria, "fromDate", "toDate", "조회 기간");
+        if (message != null) {
+            return message;
+        }
         return null;
     }
 

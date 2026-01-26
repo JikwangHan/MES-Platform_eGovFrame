@@ -25,6 +25,16 @@ import com.mes.web.service.WorkService;
 @Controller
 public class WorkController {
 
+    /**
+     * 목적: 작업 상태 허용 값을 정의한다.
+     * 기능: 조회/상태 변경 요청에서 허용 값 검증에 사용한다.
+     * 이유: 상태 코드 오입력을 사전에 차단하기 위함이다.
+     * 유지보수: 상태 코드 확정 시 목록을 조정한다.
+     */
+    private static final String[] WORK_STATUS_ALLOWED = new String[] {
+        "planned", "released", "in_progress", "completed", "hold", "canceled"
+    };
+
     private final WorkService workService;
     private final AuditLogService auditLogService;
 
@@ -156,6 +166,12 @@ public class WorkController {
         if (ValidationUtils.isBlank(status)) {
             return buildFail("상태는 필수입니다.");
         }
+        Map<String, Object> validation = new HashMap<String, Object>();
+        validation.put("status", status);
+        String message = ValidationUtils.validateIn(validation, "status", "상태", WORK_STATUS_ALLOWED);
+        if (message != null) {
+            return buildFail(message);
+        }
         int count = workService.updateWorkStatus(workNo, status);
         auditLogService.logEvent("work_status", count > 0 ? "success" : "fail", null,
                 "workNo=" + workNo + ",status=" + status);
@@ -273,6 +289,14 @@ public class WorkController {
             return message;
         }
         message = ValidationUtils.validateDate(criteria, "toDate", "조회 종료일");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateDateRange(criteria, "fromDate", "toDate", "조회 기간");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateIn(criteria, "status", "상태", WORK_STATUS_ALLOWED);
         if (message != null) {
             return message;
         }

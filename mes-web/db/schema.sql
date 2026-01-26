@@ -30,6 +30,15 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS roles (
+  role_code VARCHAR(30) PRIMARY KEY,
+  role_name VARCHAR(100) NOT NULL,
+  role_desc VARCHAR(200),
+  status VARCHAR(20) NOT NULL DEFAULT 'active',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS permissions (
   perm_key VARCHAR(100) PRIMARY KEY,
   perm_label VARCHAR(200) NOT NULL,
@@ -45,7 +54,8 @@ CREATE TABLE IF NOT EXISTS role_permissions (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (role_code, perm_key),
-  CONSTRAINT fk_role_permissions_perm FOREIGN KEY (perm_key) REFERENCES permissions(perm_key)
+  CONSTRAINT fk_role_permissions_perm FOREIGN KEY (perm_key) REFERENCES permissions(perm_key),
+  CONSTRAINT fk_role_permissions_role FOREIGN KEY (role_code) REFERENCES roles(role_code)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS partners (

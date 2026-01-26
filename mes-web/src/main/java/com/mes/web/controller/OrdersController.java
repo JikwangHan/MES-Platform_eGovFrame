@@ -196,6 +196,10 @@ public class OrdersController {
         if (message != null) {
             return message;
         }
+        message = ValidationUtils.validateIn(order, "status", "상태", new String[] { "planned", "released", "completed", "canceled" });
+        if (message != null) {
+            return message;
+        }
         return null;
     }
 
@@ -234,6 +238,10 @@ public class OrdersController {
         if (message != null) {
             return message;
         }
+        message = ValidationUtils.validateIn(order, "status", "상태", new String[] { "planned", "released", "completed", "canceled" });
+        if (message != null) {
+            return message;
+        }
         return null;
     }
 
@@ -249,6 +257,10 @@ public class OrdersController {
             return message;
         }
         message = ValidationUtils.validateDate(criteria, "toDate", "조회 종료일");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateDateRange(criteria, "fromDate", "toDate", "조회 기간");
         if (message != null) {
             return message;
         }
