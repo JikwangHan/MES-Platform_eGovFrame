@@ -49,6 +49,7 @@ public class AuthUser {
      * 기능: 권한 구분 값을 제공한다.
      * 이유: 권한별 메뉴/버튼 제어에 필요하다.
      * 유지보수: 역할 체계 변경 시 값 범위를 조정한다.
+     * 참고: 역할 코드는 SYSTEM_ADMIN/MANAGER/OPERATOR/VIEWER를 사용한다.
      */
     public String getRole() {
         return role;
