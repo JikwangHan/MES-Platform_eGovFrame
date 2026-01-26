@@ -30,15 +30,24 @@
         <input type="text" name="lastOutDate" placeholder="2026-01-02" />
         <label>품목 코드(조회용)</label>
         <input type="text" name="itemCode" placeholder="ITEM-0001" />
+        <label>페이지</label>
+        <input type="text" name="page" placeholder="1" />
+        <label>페이지 크기</label>
+        <input type="text" name="pageSize" placeholder="50" />
         <label>요청자 ID(감사로그용)</label>
         <input type="text" name="userId" placeholder="admin" />
       </form>
-      <div class="form-actions">
-        <button type="button" onclick="MesWeb.post('/api/inventory/list', 'inventoryForm', 'inventoryResult')">조회</button>
-        <button type="button" onclick="MesWeb.post('/api/inventory/create', 'inventoryForm', 'inventoryResult')">등록</button>
-        <button type="button" onclick="MesWeb.post('/api/inventory/update', 'inventoryForm', 'inventoryResult')">수정</button>
-        <button type="button" onclick="MesWeb.post('/api/inventory/delete', 'inventoryForm', 'inventoryResult')">삭제</button>
-      </div>
+      <c:set var="crudFormId" value="inventoryForm" />
+      <c:set var="crudResultId" value="inventoryResult" />
+      <c:set var="crudListUrl" value="/api/inventory/list" />
+      <c:set var="crudCreateUrl" value="/api/inventory/create" />
+      <c:set var="crudUpdateUrl" value="/api/inventory/update" />
+      <c:set var="crudDeleteUrl" value="/api/inventory/delete" />
+      <c:set var="crudListPerm" value="ACTION_INVENTORY_LIST" />
+      <c:set var="crudCreatePerm" value="ACTION_INVENTORY_CREATE" />
+      <c:set var="crudUpdatePerm" value="ACTION_INVENTORY_UPDATE" />
+      <c:set var="crudDeletePerm" value="ACTION_INVENTORY_DELETE" />
+      <jsp:include page="/WEB-INF/jsp/common/crud_buttons.jsp" />
       <pre id="inventoryResult" class="result-box"></pre>
     </div>
   <%@ include file="/WEB-INF/jsp/common/grid.jsp" %>

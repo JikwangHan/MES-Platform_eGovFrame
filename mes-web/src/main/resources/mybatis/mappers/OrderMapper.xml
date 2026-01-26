@@ -24,8 +24,17 @@
       <if test="criteria.status != null and criteria.status != ''">
         AND o.status = #{criteria.status}
       </if>
+      <if test="criteria.fromDate != null and criteria.fromDate != ''">
+        AND o.order_date &gt;= #{criteria.fromDate}
+      </if>
+      <if test="criteria.toDate != null and criteria.toDate != ''">
+        AND o.order_date &lt;= #{criteria.toDate}
+      </if>
     </where>
     ORDER BY o.id DESC
+    <if test="criteria.limit != null and criteria.offset != null">
+      LIMIT #{criteria.limit} OFFSET #{criteria.offset}
+    </if>
   </select>
 
   <!--

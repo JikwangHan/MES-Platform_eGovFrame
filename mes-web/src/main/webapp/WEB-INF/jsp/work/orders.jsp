@@ -22,22 +22,37 @@
         <input type="text" name="planStartDate" placeholder="2026-01-01" />
         <label>계획 종료일(YYYY-MM-DD)</label>
         <input type="text" name="planEndDate" placeholder="2026-01-05" />
+        <label>조회 시작일(YYYY-MM-DD)</label>
+        <input type="text" name="fromDate" placeholder="2026-01-01" />
+        <label>조회 종료일(YYYY-MM-DD)</label>
+        <input type="text" name="toDate" placeholder="2026-01-31" />
         <label>계획 수량</label>
         <input type="text" name="planQty" placeholder="10" />
         <label>상태</label>
         <input type="text" name="status" placeholder="planned" />
         <label>담당자 ID</label>
         <input type="text" name="ownerId" placeholder="1" />
+        <label>페이지</label>
+        <input type="text" name="page" placeholder="1" />
+        <label>페이지 크기</label>
+        <input type="text" name="pageSize" placeholder="50" />
         <label>요청자 ID(감사로그용)</label>
         <input type="text" name="userId" placeholder="admin" />
       </form>
-      <div class="form-actions">
-        <button type="button" onclick="MesWeb.post('/api/work/list', 'workForm', 'workResult')">조회</button>
-        <button type="button" onclick="MesWeb.post('/api/work/create', 'workForm', 'workResult')">등록</button>
-        <button type="button" onclick="MesWeb.post('/api/work/update', 'workForm', 'workResult')">수정</button>
-        <button type="button" onclick="MesWeb.post('/api/work/status', 'workForm', 'workResult')">상태변경</button>
-        <button type="button" onclick="MesWeb.post('/api/work/delete', 'workForm', 'workResult')">삭제</button>
-      </div>
+      <c:set var="crudFormId" value="workForm" />
+      <c:set var="crudResultId" value="workResult" />
+      <c:set var="crudListUrl" value="/api/work/list" />
+      <c:set var="crudCreateUrl" value="/api/work/create" />
+      <c:set var="crudUpdateUrl" value="/api/work/update" />
+      <c:set var="crudDeleteUrl" value="/api/work/delete" />
+      <c:set var="crudExtraUrl" value="/api/work/status" />
+      <c:set var="crudExtraLabel" value="상태변경" />
+      <c:set var="crudListPerm" value="ACTION_WORK_LIST" />
+      <c:set var="crudCreatePerm" value="ACTION_WORK_CREATE" />
+      <c:set var="crudUpdatePerm" value="ACTION_WORK_UPDATE" />
+      <c:set var="crudDeletePerm" value="ACTION_WORK_DELETE" />
+      <c:set var="crudExtraPerm" value="ACTION_WORK_STATUS" />
+      <jsp:include page="/WEB-INF/jsp/common/crud_buttons.jsp" />
       <pre id="workResult" class="result-box"></pre>
     </div>
   <%@ include file="/WEB-INF/jsp/common/grid.jsp" %>

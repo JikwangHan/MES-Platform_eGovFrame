@@ -18,6 +18,10 @@
         <input type="text" name="id" placeholder="1" />
         <label>불량일자(YYYY-MM-DD)</label>
         <input type="text" name="defectDate" placeholder="2026-01-01" />
+        <label>조회 시작일(YYYY-MM-DD)</label>
+        <input type="text" name="fromDate" placeholder="2026-01-01" />
+        <label>조회 종료일(YYYY-MM-DD)</label>
+        <input type="text" name="toDate" placeholder="2026-01-31" />
         <label>품목 ID</label>
         <input type="text" name="itemId" placeholder="1" />
         <label>공정 ID</label>
@@ -28,14 +32,22 @@
         <input type="text" name="defectTypeId" placeholder="1" />
         <label>불량 수량</label>
         <input type="text" name="defectQty" placeholder="2" />
+        <label>페이지</label>
+        <input type="text" name="page" placeholder="1" />
+        <label>페이지 크기</label>
+        <input type="text" name="pageSize" placeholder="50" />
         <label>요청자 ID(감사로그용)</label>
         <input type="text" name="userId" placeholder="admin" />
       </form>
-      <div class="form-actions">
-        <button type="button" onclick="MesWeb.post('/api/quality/defects/list', 'defectForm', 'defectResult')">조회</button>
-        <button type="button" onclick="MesWeb.post('/api/quality/defects/create', 'defectForm', 'defectResult')">등록</button>
-        <button type="button" onclick="MesWeb.post('/api/quality/defects/delete', 'defectForm', 'defectResult')">삭제</button>
-      </div>
+      <c:set var="crudFormId" value="defectForm" />
+      <c:set var="crudResultId" value="defectResult" />
+      <c:set var="crudListUrl" value="/api/quality/defects/list" />
+      <c:set var="crudCreateUrl" value="/api/quality/defects/create" />
+      <c:set var="crudDeleteUrl" value="/api/quality/defects/delete" />
+      <c:set var="crudListPerm" value="ACTION_QUALITY_LIST" />
+      <c:set var="crudCreatePerm" value="ACTION_QUALITY_CREATE" />
+      <c:set var="crudDeletePerm" value="ACTION_QUALITY_DELETE" />
+      <jsp:include page="/WEB-INF/jsp/common/crud_buttons.jsp" />
       <pre id="defectResult" class="result-box"></pre>
     </div>
   <%@ include file="/WEB-INF/jsp/common/grid.jsp" %>

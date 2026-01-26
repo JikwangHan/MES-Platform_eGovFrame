@@ -32,16 +32,19 @@ public class AuditLogDao {
 
     /**
      * 목적: 감사 로그를 저장한다.
-     * 기능: 이벤트 유형/결과/상세를 저장한다.
-     * 이유: 보안 이벤트 추적을 위해 필요하다.
+     * 기능: 이벤트 유형/결과/해시 정보를 저장한다.
+     * 이유: 민감정보를 직접 저장하지 않고 추적 가능하게 하기 위함이다.
      * 유지보수: 필드 확장 시 파라미터를 보완한다.
      */
-    public void insertLog(String eventType, String result, String userId, String detail) {
+    public void insertLog(String eventType, String result, String userId, String detailHash,
+                          String ipHash, String userAgentHash) {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("eventType", eventType);
         params.put("result", result);
         params.put("userId", userId);
-        params.put("detail", detail);
+        params.put("detailHash", detailHash);
+        params.put("ipHash", ipHash);
+        params.put("userAgentHash", userAgentHash);
         auditLogMapper.insertLog(params);
     }
 }

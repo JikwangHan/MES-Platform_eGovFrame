@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.mes.web.common.audit.AuditLogService;
+import com.mes.web.common.validation.CriteriaUtils;
+import com.mes.web.common.validation.ValidationUtils;
 import com.mes.web.service.WorkService;
 
 /**
@@ -80,6 +82,7 @@ public class WorkController {
     @PostMapping("/api/work/list")
     @ResponseBody
     public Map<String, Object> list(@RequestParam Map<String, Object> criteria) {
+        CriteriaUtils.applyPaging(criteria, 50, 200);
         List<Map<String, Object>> works = workService.findWorkOrders(criteria);
         Map<String, Object> result = new HashMap<String, Object>();
         result.put("result", "success");
@@ -100,6 +103,7 @@ public class WorkController {
         if (validationError != null) {
             return buildFail(validationError);
         }
+        normalizeNumbers(work);
         int count = workService.createWorkOrder(work);
         auditLogService.logEvent("work_create", count > 0 ? "success" : "fail", getUserId(work),
                 "workNo=" + work.get("workNo"));
@@ -122,6 +126,7 @@ public class WorkController {
         if (validationError != null) {
             return buildFail(validationError);
         }
+        normalizeNumbers(work);
         int count = workService.updateWorkOrder(work);
         auditLogService.logEvent("work_update", count > 0 ? "success" : "fail", getUserId(work),
                 "workNo=" + work.get("workNo"));
@@ -141,10 +146,10 @@ public class WorkController {
     @ResponseBody
     public Map<String, Object> updateStatus(@RequestParam("workNo") String workNo,
                                             @RequestParam("status") String status) {
-        if (workNo == null || workNo.trim().isEmpty()) {
+        if (ValidationUtils.isBlank(workNo)) {
             return buildFail("작업번호는 필수입니다.");
         }
-        if (status == null || status.trim().isEmpty()) {
+        if (ValidationUtils.isBlank(status)) {
             return buildFail("상태는 필수입니다.");
         }
         int count = workService.updateWorkStatus(workNo, status);
@@ -165,7 +170,7 @@ public class WorkController {
     @PostMapping("/api/work/delete")
     @ResponseBody
     public Map<String, Object> delete(@RequestParam("workNo") String workNo) {
-        if (workNo == null || workNo.trim().isEmpty()) {
+        if (ValidationUtils.isBlank(workNo)) {
             return buildFail("작업번호는 필수입니다.");
         }
         int count = workService.deleteWorkOrder(workNo);
@@ -183,14 +188,37 @@ public class WorkController {
      * 유지보수: 필수 값 변경 시 항목을 조정한다.
      */
     private String validateCreate(Map<String, Object> work) {
-        if (isBlank(work.get("workNo"))) {
-            return "작업번호는 필수입니다.";
+        String message = ValidationUtils.require(work, "workNo", "작업번호");
+        if (message != null) {
+            return message;
         }
-        if (isBlank(work.get("orderId"))) {
-            return "수주 ID는 필수입니다.";
+        message = ValidationUtils.require(work, "orderId", "수주 ID");
+        if (message != null) {
+            return message;
         }
-        if (isBlank(work.get("planQty"))) {
-            return "계획 수량은 필수입니다.";
+        message = ValidationUtils.require(work, "planQty", "계획 수량");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateDate(work, "planStartDate", "계획 시작일");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateDate(work, "planEndDate", "계획 종료일");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(work, "orderId", "수주 ID", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(work, "planQty", "계획 수량", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(work, "ownerId", "담당자 ID", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
         }
         return null;
     }
@@ -202,12 +230,44 @@ public class WorkController {
      * 유지보수: 필수 값 변경 시 항목을 조정한다.
      */
     private String validateUpdate(Map<String, Object> work) {
-        if (isBlank(work.get("workNo"))) {
-            return "작업번호는 필수입니다.";
+        String message = ValidationUtils.require(work, "workNo", "작업번호");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateDate(work, "planStartDate", "계획 시작일");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateDate(work, "planEndDate", "계획 종료일");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(work, "orderId", "수주 ID", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(work, "planQty", "계획 수량", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(work, "ownerId", "담당자 ID", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
         }
         return null;
     }
 
+    /**
+     * 목적: 숫자 필드를 정규화한다.
+     * 기능: 숫자 문자열을 Integer로 변환해 저장한다.
+     * 이유: DB 타입 일관성을 유지하기 위함이다.
+     * 유지보수: 숫자 필드 추가 시 이 메서드를 보완한다.
+     */
+    private void normalizeNumbers(Map<String, Object> work) {
+        ValidationUtils.normalizeInt(work, "orderId");
+        ValidationUtils.normalizeInt(work, "planQty");
+        ValidationUtils.normalizeInt(work, "ownerId");
+    }
     /**
      * 목적: 공백 여부를 확인한다.
      * 기능: null 또는 빈 문자열인지 검사한다.
@@ -215,7 +275,7 @@ public class WorkController {
      * 유지보수: 검증 규칙 변경 시 로직을 보완한다.
      */
     private boolean isBlank(Object value) {
-        return value == null || value.toString().trim().isEmpty();
+        return ValidationUtils.isBlank(value);
     }
 
     /**

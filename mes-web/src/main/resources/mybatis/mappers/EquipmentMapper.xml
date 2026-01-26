@@ -21,8 +21,14 @@
       <if test="criteria.status != null and criteria.status != ''">
         AND status = #{criteria.status}
       </if>
+      <if test="criteria.equipmentType != null and criteria.equipmentType != ''">
+        AND equipment_type = #{criteria.equipmentType}
+      </if>
     </where>
     ORDER BY id DESC
+    <if test="criteria.limit != null and criteria.offset != null">
+      LIMIT #{criteria.limit} OFFSET #{criteria.offset}
+    </if>
   </select>
 
   <!--

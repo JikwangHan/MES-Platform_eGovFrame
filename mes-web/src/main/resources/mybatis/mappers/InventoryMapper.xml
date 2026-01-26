@@ -20,8 +20,14 @@
       <if test="criteria.itemCode != null and criteria.itemCode != ''">
         i.item_code = #{criteria.itemCode}
       </if>
+      <if test="criteria.stockType != null and criteria.stockType != ''">
+        AND s.stock_type = #{criteria.stockType}
+      </if>
     </where>
     ORDER BY s.id DESC
+    <if test="criteria.limit != null and criteria.offset != null">
+      LIMIT #{criteria.limit} OFFSET #{criteria.offset}
+    </if>
   </select>
 
   <!--

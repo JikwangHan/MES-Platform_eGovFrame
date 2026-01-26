@@ -38,6 +38,11 @@
   </filter>
 
   <filter>
+    <filter-name>auditContextFilter</filter-name>
+    <filter-class>com.mes.web.common.audit.AuditContextFilter</filter-class>
+  </filter>
+
+  <filter>
     <filter-name>tenantResolverFilter</filter-name>
     <filter-class>com.mes.web.common.tenant.TenantResolverFilter</filter-class>
   </filter>
@@ -45,6 +50,11 @@
   <filter>
     <filter-name>authFilter</filter-name>
     <filter-class>com.mes.web.common.auth.AuthFilter</filter-class>
+  </filter>
+
+  <filter>
+    <filter-name>authorizationFilter</filter-name>
+    <filter-class>com.mes.web.common.auth.AuthorizationFilter</filter-class>
   </filter>
 
   <filter-mapping>
@@ -58,12 +68,22 @@
   </filter-mapping>
 
   <filter-mapping>
+    <filter-name>auditContextFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+
+  <filter-mapping>
     <filter-name>tenantResolverFilter</filter-name>
     <url-pattern>/*</url-pattern>
   </filter-mapping>
 
   <filter-mapping>
     <filter-name>authFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+
+  <filter-mapping>
+    <filter-name>authorizationFilter</filter-name>
     <url-pattern>/*</url-pattern>
   </filter-mapping>
 

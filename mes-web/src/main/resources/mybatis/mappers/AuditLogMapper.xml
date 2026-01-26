@@ -12,13 +12,17 @@
       event_type,
       user_id,
       result,
+      ip_hash,
+      user_agent_hash,
       detail_hash,
       created_at
     ) VALUES (
       #{params.eventType},
       #{params.userId},
       #{params.result},
-      #{params.detail},
+      #{params.ipHash},
+      #{params.userAgentHash},
+      #{params.detailHash},
       NOW()
     )
   </insert>

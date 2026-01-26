@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import com.mes.web.common.audit.AuditLogService;
 import com.mes.web.common.auth.AuthService;
 import com.mes.web.common.auth.AuthUser;
+import com.mes.web.common.auth.PermissionService;
 
 /**
  * 목적: 로그인 및 로그아웃 흐름을 제공한다.
@@ -27,6 +28,7 @@ public class LoginController {
 
     private final AuthService authService;
     private final AuditLogService auditLogService;
+    private final PermissionService permissionService;
 
     /**
      * 목적: 로그인 처리에 필요한 서비스를 주입한다.
@@ -35,9 +37,10 @@ public class LoginController {
      * 유지보수: 서비스 구현체 변경 시 주입만 교체한다.
      */
     @Autowired
-    public LoginController(AuthService authService, AuditLogService auditLogService) {
+    public LoginController(AuthService authService, AuditLogService auditLogService, PermissionService permissionService) {
         this.authService = authService;
         this.auditLogService = auditLogService;
+        this.permissionService = permissionService;
     }
 
     /**
@@ -71,6 +74,8 @@ public class LoginController {
         }
         HttpSession session = request.getSession();
         session.setAttribute(SESSION_AUTH_KEY, authUser);
+        session.setAttribute("PERMISSIONS", permissionService.buildPermissionMap(authUser.getRole()));
+        session.setAttribute("AUTH_ROLE", authUser.getRole());
         if (tenantId != null && !tenantId.trim().isEmpty()) {
             session.setAttribute("TENANT_ID", tenantId);
         }

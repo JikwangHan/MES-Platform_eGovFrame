@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.mes.web.common.audit.AuditLogService;
+import com.mes.web.common.validation.CriteriaUtils;
+import com.mes.web.common.validation.ValidationUtils;
 import com.mes.web.service.OrderService;
 
 /**
@@ -69,6 +71,7 @@ public class OrdersController {
     @PostMapping("/api/orders/list")
     @ResponseBody
     public Map<String, Object> list(@RequestParam Map<String, Object> criteria) {
+        CriteriaUtils.applyPaging(criteria, 50, 200);
         List<Map<String, Object>> orders = orderService.findOrders(criteria);
         Map<String, Object> result = new HashMap<String, Object>();
         result.put("result", "success");
@@ -89,6 +92,7 @@ public class OrdersController {
         if (validationError != null) {
             return buildFail(validationError);
         }
+        normalizeNumbers(order);
         int count = orderService.createOrder(order);
         auditLogService.logEvent("order_create", count > 0 ? "success" : "fail", getUserId(order),
                 "orderNo=" + order.get("orderNo"));
@@ -111,6 +115,7 @@ public class OrdersController {
         if (validationError != null) {
             return buildFail(validationError);
         }
+        normalizeNumbers(order);
         int count = orderService.updateOrder(order);
         auditLogService.logEvent("order_update", count > 0 ? "success" : "fail", getUserId(order),
                 "orderNo=" + order.get("orderNo"));
@@ -147,17 +152,45 @@ public class OrdersController {
      * 유지보수: 필수 값 변경 시 항목을 조정한다.
      */
     private String validateCreate(Map<String, Object> order) {
-        if (isBlank(order.get("orderNo"))) {
-            return "수주번호는 필수입니다.";
+        String message = ValidationUtils.require(order, "orderNo", "수주번호");
+        if (message != null) {
+            return message;
         }
-        if (isBlank(order.get("orderDate"))) {
-            return "수주일자는 필수입니다.";
+        message = ValidationUtils.require(order, "orderDate", "수주일자");
+        if (message != null) {
+            return message;
         }
-        if (isBlank(order.get("itemId"))) {
-            return "품목 ID는 필수입니다.";
+        message = ValidationUtils.require(order, "itemId", "품목 ID");
+        if (message != null) {
+            return message;
         }
-        if (isBlank(order.get("orderQty"))) {
-            return "수주수량은 필수입니다.";
+        message = ValidationUtils.require(order, "orderQty", "수주수량");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateDate(order, "orderDate", "수주일자");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateDate(order, "dueDate", "납기일자");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(order, "itemId", "품목 ID", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(order, "orderQty", "수주수량", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(order, "partnerId", "거래처 ID", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(order, "ownerId", "담당자 ID", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
         }
         return null;
     }
@@ -169,12 +202,49 @@ public class OrdersController {
      * 유지보수: 필수 값 변경 시 항목을 조정한다.
      */
     private String validateUpdate(Map<String, Object> order) {
-        if (isBlank(order.get("orderNo"))) {
-            return "수주번호는 필수입니다.";
+        String message = ValidationUtils.require(order, "orderNo", "수주번호");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateDate(order, "orderDate", "수주일자");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateDate(order, "dueDate", "납기일자");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(order, "itemId", "품목 ID", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(order, "orderQty", "수주수량", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(order, "partnerId", "거래처 ID", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(order, "ownerId", "담당자 ID", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
         }
         return null;
     }
 
+    /**
+     * 목적: 숫자 필드를 정규화한다.
+     * 기능: 숫자 문자열을 Integer로 변환해 저장한다.
+     * 이유: DB 타입 일관성을 유지하기 위함이다.
+     * 유지보수: 숫자 필드 추가 시 이 메서드를 보완한다.
+     */
+    private void normalizeNumbers(Map<String, Object> order) {
+        ValidationUtils.normalizeInt(order, "itemId");
+        ValidationUtils.normalizeInt(order, "orderQty");
+        ValidationUtils.normalizeInt(order, "partnerId");
+        ValidationUtils.normalizeInt(order, "ownerId");
+    }
     /**
      * 목적: 공백 여부를 확인한다.
      * 기능: null 또는 빈 문자열인지 검사한다.
@@ -182,7 +252,7 @@ public class OrdersController {
      * 유지보수: 검증 규칙 변경 시 로직을 보완한다.
      */
     private boolean isBlank(Object value) {
-        return value == null || value.toString().trim().isEmpty();
+        return ValidationUtils.isBlank(value);
     }
 
     /**

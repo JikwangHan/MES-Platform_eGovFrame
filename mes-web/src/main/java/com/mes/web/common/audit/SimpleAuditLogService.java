@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.mes.web.common.crypto.CryptoService;
 import com.mes.web.dao.AuditLogDao;
 
 /**
@@ -18,6 +19,7 @@ public class SimpleAuditLogService implements AuditLogService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SimpleAuditLogService.class);
     private final AuditLogDao auditLogDao;
+    private final CryptoService cryptoService;
 
     /**
      * 목적: 감사 로그 DAO를 주입받는다.
@@ -26,8 +28,9 @@ public class SimpleAuditLogService implements AuditLogService {
      * 유지보수: 저장 방식 변경 시 DAO만 교체한다.
      */
     @Autowired
-    public SimpleAuditLogService(AuditLogDao auditLogDao) {
+    public SimpleAuditLogService(AuditLogDao auditLogDao, CryptoService cryptoService) {
         this.auditLogDao = auditLogDao;
+        this.cryptoService = cryptoService;
     }
 
     /**
@@ -38,7 +41,24 @@ public class SimpleAuditLogService implements AuditLogService {
      */
     @Override
     public void logEvent(String eventType, String result, String userId, String detail) {
-        LOGGER.info("감사로그 eventType={}, result={}, userId={}, detail={}", eventType, result, userId, detail);
-        auditLogDao.insertLog(eventType, result, userId, detail);
+        AuditContext context = AuditContextHolder.get();
+        String detailHash = safeHash(detail);
+        String ipHash = context == null ? null : safeHash(context.getClientIp());
+        String userAgentHash = context == null ? null : safeHash(context.getUserAgent());
+        LOGGER.info("감사로그 eventType={}, result={}, userId={}", eventType, result, userId);
+        auditLogDao.insertLog(eventType, result, userId, detailHash, ipHash, userAgentHash);
+    }
+
+    /**
+     * 목적: 안전한 해시 값을 생성한다.
+     * 기능: null/공백은 null로 처리하고 나머지는 해시 처리한다.
+     * 이유: 감사 로그에 민감정보 원문을 남기지 않기 위함이다.
+     * 유지보수: 해시 정책 변경 시 CryptoService를 교체한다.
+     */
+    private String safeHash(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            return null;
+        }
+        return cryptoService.hash(input);
     }
 }

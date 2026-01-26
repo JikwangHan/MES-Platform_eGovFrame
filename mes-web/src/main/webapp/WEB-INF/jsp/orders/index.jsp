@@ -18,6 +18,10 @@
         <input type="text" name="orderNo" placeholder="ORDER-0001" />
         <label>수주일자(YYYY-MM-DD)</label>
         <input type="text" name="orderDate" placeholder="2026-01-01" />
+        <label>조회 시작일(YYYY-MM-DD)</label>
+        <input type="text" name="fromDate" placeholder="2026-01-01" />
+        <label>조회 종료일(YYYY-MM-DD)</label>
+        <input type="text" name="toDate" placeholder="2026-01-31" />
         <label>납기일자(YYYY-MM-DD)</label>
         <input type="text" name="dueDate" placeholder="2026-01-07" />
         <label>품목 ID</label>
@@ -30,15 +34,24 @@
         <input type="text" name="partnerId" placeholder="1" />
         <label>담당자 ID</label>
         <input type="text" name="ownerId" placeholder="1" />
+        <label>페이지</label>
+        <input type="text" name="page" placeholder="1" />
+        <label>페이지 크기</label>
+        <input type="text" name="pageSize" placeholder="50" />
         <label>요청자 ID(감사로그용)</label>
         <input type="text" name="userId" placeholder="admin" />
       </form>
-      <div class="form-actions">
-        <button type="button" onclick="MesWeb.post('/api/orders/list', 'orderForm', 'orderResult')">조회</button>
-        <button type="button" onclick="MesWeb.post('/api/orders/create', 'orderForm', 'orderResult')">등록</button>
-        <button type="button" onclick="MesWeb.post('/api/orders/update', 'orderForm', 'orderResult')">수정</button>
-        <button type="button" onclick="MesWeb.post('/api/orders/delete', 'orderForm', 'orderResult')">삭제</button>
-      </div>
+      <c:set var="crudFormId" value="orderForm" />
+      <c:set var="crudResultId" value="orderResult" />
+      <c:set var="crudListUrl" value="/api/orders/list" />
+      <c:set var="crudCreateUrl" value="/api/orders/create" />
+      <c:set var="crudUpdateUrl" value="/api/orders/update" />
+      <c:set var="crudDeleteUrl" value="/api/orders/delete" />
+      <c:set var="crudListPerm" value="ACTION_ORDER_LIST" />
+      <c:set var="crudCreatePerm" value="ACTION_ORDER_CREATE" />
+      <c:set var="crudUpdatePerm" value="ACTION_ORDER_UPDATE" />
+      <c:set var="crudDeletePerm" value="ACTION_ORDER_DELETE" />
+      <jsp:include page="/WEB-INF/jsp/common/crud_buttons.jsp" />
       <pre id="orderResult" class="result-box"></pre>
     </div>
   <%@ include file="/WEB-INF/jsp/common/grid.jsp" %>
