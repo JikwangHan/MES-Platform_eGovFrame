@@ -56,3 +56,8 @@ CRUD 스모크(companyA 테넌트)
 
 권한 저장 스모크(서버 기동 후)
 - 결과 요약: 관리자 권한으로 VIEWER 권한 저장 요청 302 확인
+
+2026-01-26 실행 결과
+- 결과 요약: 관리자 로그인 성공(302), /admin/permissions 및 /admin/roles 접근 200 확인
+- 결과 요약: 역할 생성/삭제 요청 302 확인, SYSTEM_ADMIN 권한 보호 요청 302 확인
+- 결과 요약: 수주/작업/재고/품질/설비 CRUD create/update/delete result=success 확인
