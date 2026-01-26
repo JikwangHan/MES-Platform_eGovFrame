@@ -1,5 +1,7 @@
 package com.mes.web.common.validation;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 
 /**
@@ -44,6 +46,11 @@ public final class ValidationUtils {
         String text = value.toString().trim();
         if (!text.matches(DATE_REGEX)) {
             return label + " 형식은 YYYY-MM-DD입니다.";
+        }
+        try {
+            LocalDate.parse(text);
+        } catch (DateTimeParseException ex) {
+            return label + " 값이 올바른 날짜가 아닙니다.";
         }
         return null;
     }

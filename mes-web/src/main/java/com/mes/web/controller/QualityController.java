@@ -82,6 +82,10 @@ public class QualityController {
     @PostMapping("/api/quality/defects/list")
     @ResponseBody
     public Map<String, Object> list(@RequestParam Map<String, Object> criteria) {
+        String validationError = validateList(criteria);
+        if (validationError != null) {
+            return buildFail(validationError);
+        }
         CriteriaUtils.applyPaging(criteria, 50, 200);
         List<Map<String, Object>> defects = qualityService.findDefects(criteria);
         Map<String, Object> result = new HashMap<String, Object>();
@@ -173,6 +177,24 @@ public class QualityController {
             return message;
         }
         message = ValidationUtils.validateInt(defect, "defectQty", "불량 수량", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        return null;
+    }
+
+    /**
+     * 목적: 불량 조회 조건을 검증한다.
+     * 기능: 날짜 조건 형식을 점검한다.
+     * 이유: 잘못된 조회 파라미터로 인한 오류를 방지하기 위함이다.
+     * 유지보수: 조회 조건 확장 시 검증 항목을 추가한다.
+     */
+    private String validateList(Map<String, Object> criteria) {
+        String message = ValidationUtils.validateDate(criteria, "fromDate", "조회 시작일");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateDate(criteria, "toDate", "조회 종료일");
         if (message != null) {
             return message;
         }
