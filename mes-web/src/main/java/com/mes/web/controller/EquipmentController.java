@@ -25,6 +25,16 @@ import com.mes.web.service.EquipmentService;
 @Controller
 public class EquipmentController {
 
+    /**
+     * 목적: 설비 상태 허용 값을 정의한다.
+     * 기능: 조회/등록/수정 요청에서 상태값 검증에 사용한다.
+     * 이유: 상태 코드 오입력을 사전에 차단하기 위함이다.
+     * 유지보수: 상태 코드 확정 시 목록을 조정한다.
+     */
+    private static final String[] EQUIPMENT_STATUS_ALLOWED = new String[] {
+        "idle", "running", "stop", "maintenance"
+    };
+
     private final EquipmentService equipmentService;
     private final AuditLogService auditLogService;
 
@@ -82,6 +92,10 @@ public class EquipmentController {
     @PostMapping("/api/equipment/list")
     @ResponseBody
     public Map<String, Object> list(@RequestParam Map<String, Object> criteria) {
+        String validationError = validateList(criteria);
+        if (validationError != null) {
+            return buildFail(validationError);
+        }
         CriteriaUtils.applyPaging(criteria, 50, 200);
         List<Map<String, Object>> equipments = equipmentService.findEquipmentStatus(criteria);
         Map<String, Object> result = new HashMap<String, Object>();
@@ -176,6 +190,10 @@ public class EquipmentController {
         if (message != null) {
             return message;
         }
+        message = ValidationUtils.validateIn(equipment, "status", "상태", EQUIPMENT_STATUS_ALLOWED);
+        if (message != null) {
+            return message;
+        }
         message = ValidationUtils.validateInt(equipment, "portNumber", "포트", 0, 65535);
         if (message != null) {
             return message;
@@ -199,6 +217,10 @@ public class EquipmentController {
      */
     private String validateUpdate(Map<String, Object> equipment) {
         String message = ValidationUtils.require(equipment, "equipmentCode", "설비 코드");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateIn(equipment, "status", "상태", EQUIPMENT_STATUS_ALLOWED);
         if (message != null) {
             return message;
         }
@@ -227,6 +249,20 @@ public class EquipmentController {
         ValidationUtils.normalizeInt(equipment, "portNumber");
         ValidationUtils.normalizeInt(equipment, "baudRate");
         ValidationUtils.normalizeInt(equipment, "pollingInterval");
+    }
+
+    /**
+     * 목적: 설비 조회 조건을 검증한다.
+     * 기능: 상태 코드가 허용 값인지 확인한다.
+     * 이유: 잘못된 조회 조건으로 인한 오류를 방지하기 위함이다.
+     * 유지보수: 조회 조건 확정 시 검증 항목을 추가한다.
+     */
+    private String validateList(Map<String, Object> criteria) {
+        String message = ValidationUtils.validateIn(criteria, "status", "상태", EQUIPMENT_STATUS_ALLOWED);
+        if (message != null) {
+            return message;
+        }
+        return null;
     }
     /**
      * 목적: 공백 여부를 확인한다.

@@ -56,6 +56,50 @@ public final class ValidationUtils {
     }
 
     /**
+     * 목적: 날짜 범위를 검증한다.
+     * 기능: 시작일이 종료일보다 늦으면 오류를 반환한다.
+     * 이유: 잘못된 조회 조건을 방지하기 위함이다.
+     * 유지보수: 범위 정책 변경 시 비교 로직을 보완한다.
+     */
+    public static String validateDateRange(Map<String, Object> data, String fromKey, String toKey, String label) {
+        Object fromValue = data.get(fromKey);
+        Object toValue = data.get(toKey);
+        if (isBlank(fromValue) || isBlank(toValue)) {
+            return null;
+        }
+        try {
+            LocalDate fromDate = LocalDate.parse(fromValue.toString().trim());
+            LocalDate toDate = LocalDate.parse(toValue.toString().trim());
+            if (fromDate.isAfter(toDate)) {
+                return label + " 범위가 올바르지 않습니다.";
+            }
+        } catch (DateTimeParseException ex) {
+            return null;
+        }
+        return null;
+    }
+
+    /**
+     * 목적: 허용 값 목록을 검증한다.
+     * 기능: 값이 허용 목록에 없으면 오류를 반환한다.
+     * 이유: 상태/유형 코드의 입력 오류를 방지하기 위함이다.
+     * 유지보수: 허용 값 변경 시 호출부에서 목록을 수정한다.
+     */
+    public static String validateIn(Map<String, Object> data, String key, String label, String[] allowed) {
+        Object value = data.get(key);
+        if (isBlank(value)) {
+            return null;
+        }
+        String text = value.toString().trim();
+        for (String item : allowed) {
+            if (item.equalsIgnoreCase(text)) {
+                return null;
+            }
+        }
+        return label + " 값이 허용되지 않습니다.";
+    }
+
+    /**
      * 목적: 숫자 형식을 검증한다.
      * 기능: 값이 숫자인지 확인하고 범위를 검사한다.
      * 이유: 숫자 필드 입력 오류를 방지하기 위함이다.

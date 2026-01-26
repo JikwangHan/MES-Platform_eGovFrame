@@ -123,6 +123,25 @@ body {
   text-align: center;
 }
 
+.permission-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  margin-top: 12px;
+}
+
+.permission-table th,
+.permission-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  font-size: 13px;
+}
+
+.permission-table th {
+  background: #f0f2f5;
+  text-align: center;
+}
+
 .permission-actions {
   margin-top: 16px;
   background: #fff;

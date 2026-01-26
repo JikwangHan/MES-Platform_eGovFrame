@@ -8,6 +8,17 @@
 INSERT INTO users (user_id, user_name, password_hash, role, status)
 VALUES ('admin', '관리자', '$2a$10$23kDjTEajlF.pz3AJ6J.9OZVPCpb7e7XOfLagrQ45g33NRj2e9BOa', 'SYSTEM_ADMIN', 'active');
 
+-- 역할 기본 데이터
+INSERT INTO roles (role_code, role_name, role_desc, status) VALUES
+  ('SYSTEM_ADMIN', '시스템 관리자', '전체 권한 관리자', 'active'),
+  ('MANAGER', '관리자', '현장 관리자', 'active'),
+  ('OPERATOR', '작업자', '현장 작업자', 'active'),
+  ('VIEWER', '조회 전용', '조회 전용 계정', 'active')
+ON DUPLICATE KEY UPDATE
+  role_name = VALUES(role_name),
+  role_desc = VALUES(role_desc),
+  status = VALUES(status);
+
 -- 권한 카탈로그 기본 데이터
 INSERT INTO permissions (perm_key, perm_label, perm_group) VALUES
   ('MENU_DASHBOARD', '대시보드 메뉴', '메뉴'),
