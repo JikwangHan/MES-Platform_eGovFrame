@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.mes.web.common.audit.AuditLogService;
+import com.mes.web.common.validation.CriteriaUtils;
+import com.mes.web.common.validation.ValidationUtils;
 import com.mes.web.service.EquipmentService;
 
 /**
@@ -80,6 +82,7 @@ public class EquipmentController {
     @PostMapping("/api/equipment/list")
     @ResponseBody
     public Map<String, Object> list(@RequestParam Map<String, Object> criteria) {
+        CriteriaUtils.applyPaging(criteria, 50, 200);
         List<Map<String, Object>> equipments = equipmentService.findEquipmentStatus(criteria);
         Map<String, Object> result = new HashMap<String, Object>();
         result.put("result", "success");
@@ -100,6 +103,7 @@ public class EquipmentController {
         if (validationError != null) {
             return buildFail(validationError);
         }
+        normalizeNumbers(equipment);
         int count = equipmentService.createEquipment(equipment);
         auditLogService.logEvent("equipment_create", count > 0 ? "success" : "fail", getUserId(equipment),
                 "equipmentCode=" + equipment.get("equipmentCode"));
@@ -122,6 +126,7 @@ public class EquipmentController {
         if (validationError != null) {
             return buildFail(validationError);
         }
+        normalizeNumbers(equipment);
         int count = equipmentService.updateEquipment(equipment);
         auditLogService.logEvent("equipment_update", count > 0 ? "success" : "fail", getUserId(equipment),
                 "equipmentCode=" + equipment.get("equipmentCode"));
@@ -140,7 +145,7 @@ public class EquipmentController {
     @PostMapping("/api/equipment/delete")
     @ResponseBody
     public Map<String, Object> delete(@RequestParam("equipmentCode") String equipmentCode) {
-        if (equipmentCode == null || equipmentCode.trim().isEmpty()) {
+        if (ValidationUtils.isBlank(equipmentCode)) {
             return buildFail("설비 코드는 필수입니다.");
         }
         int count = equipmentService.deleteEquipment(equipmentCode);
@@ -159,14 +164,29 @@ public class EquipmentController {
      * 유지보수: 필수 값 변경 시 항목을 조정한다.
      */
     private String validateCreate(Map<String, Object> equipment) {
-        if (isBlank(equipment.get("equipmentCode"))) {
-            return "설비 코드는 필수입니다.";
+        String message = ValidationUtils.require(equipment, "equipmentCode", "설비 코드");
+        if (message != null) {
+            return message;
         }
-        if (isBlank(equipment.get("equipmentName"))) {
-            return "설비명은 필수입니다.";
+        message = ValidationUtils.require(equipment, "equipmentName", "설비명");
+        if (message != null) {
+            return message;
         }
-        if (isBlank(equipment.get("equipmentType"))) {
-            return "설비 유형은 필수입니다.";
+        message = ValidationUtils.require(equipment, "equipmentType", "설비 유형");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(equipment, "portNumber", "포트", 0, 65535);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(equipment, "baudRate", "통신 속도", 0, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(equipment, "pollingInterval", "폴링 주기", 0, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
         }
         return null;
     }
@@ -178,12 +198,36 @@ public class EquipmentController {
      * 유지보수: 필수 값 변경 시 항목을 조정한다.
      */
     private String validateUpdate(Map<String, Object> equipment) {
-        if (isBlank(equipment.get("equipmentCode"))) {
-            return "설비 코드는 필수입니다.";
+        String message = ValidationUtils.require(equipment, "equipmentCode", "설비 코드");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(equipment, "portNumber", "포트", 0, 65535);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(equipment, "baudRate", "통신 속도", 0, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(equipment, "pollingInterval", "폴링 주기", 0, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
         }
         return null;
     }
 
+    /**
+     * 목적: 숫자 필드를 정규화한다.
+     * 기능: 숫자 문자열을 Integer로 변환해 저장한다.
+     * 이유: DB 타입 일관성을 유지하기 위함이다.
+     * 유지보수: 숫자 필드 추가 시 이 메서드를 보완한다.
+     */
+    private void normalizeNumbers(Map<String, Object> equipment) {
+        ValidationUtils.normalizeInt(equipment, "portNumber");
+        ValidationUtils.normalizeInt(equipment, "baudRate");
+        ValidationUtils.normalizeInt(equipment, "pollingInterval");
+    }
     /**
      * 목적: 공백 여부를 확인한다.
      * 기능: null 또는 빈 문자열인지 검사한다.
@@ -191,7 +235,7 @@ public class EquipmentController {
      * 유지보수: 검증 규칙 변경 시 로직을 보완한다.
      */
     private boolean isBlank(Object value) {
-        return value == null || value.toString().trim().isEmpty();
+        return ValidationUtils.isBlank(value);
     }
 
     /**

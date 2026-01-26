@@ -3,13 +3,27 @@
 <div class="header">
   <div class="logo">MES Platform</div>
   <div class="menu">
-    <a href="${pageContext.request.contextPath}/dashboard/production">대시보드</a>
-    <a href="${pageContext.request.contextPath}/orders">수주</a>
-    <a href="${pageContext.request.contextPath}/work/orders">작업</a>
-    <a href="${pageContext.request.contextPath}/inventory/status">재고</a>
-    <a href="${pageContext.request.contextPath}/quality/defects/status">품질</a>
-    <a href="${pageContext.request.contextPath}/equipment/status">설비</a>
-    <a href="${pageContext.request.contextPath}/admin/users">관리</a>
+    <c:if test="${sessionScope.PERMISSIONS['MENU_DASHBOARD']}">
+      <a href="${pageContext.request.contextPath}/dashboard/production">대시보드</a>
+    </c:if>
+    <c:if test="${sessionScope.PERMISSIONS['MENU_ORDERS']}">
+      <a href="${pageContext.request.contextPath}/orders">수주</a>
+    </c:if>
+    <c:if test="${sessionScope.PERMISSIONS['MENU_WORK']}">
+      <a href="${pageContext.request.contextPath}/work/orders">작업</a>
+    </c:if>
+    <c:if test="${sessionScope.PERMISSIONS['MENU_INVENTORY']}">
+      <a href="${pageContext.request.contextPath}/inventory/status">재고</a>
+    </c:if>
+    <c:if test="${sessionScope.PERMISSIONS['MENU_QUALITY']}">
+      <a href="${pageContext.request.contextPath}/quality/defects/status">품질</a>
+    </c:if>
+    <c:if test="${sessionScope.PERMISSIONS['MENU_EQUIPMENT']}">
+      <a href="${pageContext.request.contextPath}/equipment/status">설비</a>
+    </c:if>
+    <c:if test="${sessionScope.PERMISSIONS['MENU_ADMIN']}">
+      <a href="${pageContext.request.contextPath}/admin/users">관리</a>
+    </c:if>
   </div>
   <div class="user-actions">
     <a href="${pageContext.request.contextPath}/account/change-password">암호변경</a>

@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.mes.web.common.audit.AuditLogService;
+import com.mes.web.common.validation.CriteriaUtils;
+import com.mes.web.common.validation.ValidationUtils;
 import com.mes.web.service.QualityService;
 
 /**
@@ -80,6 +82,7 @@ public class QualityController {
     @PostMapping("/api/quality/defects/list")
     @ResponseBody
     public Map<String, Object> list(@RequestParam Map<String, Object> criteria) {
+        CriteriaUtils.applyPaging(criteria, 50, 200);
         List<Map<String, Object>> defects = qualityService.findDefects(criteria);
         Map<String, Object> result = new HashMap<String, Object>();
         result.put("result", "success");
@@ -100,6 +103,7 @@ public class QualityController {
         if (validationError != null) {
             return buildFail(validationError);
         }
+        normalizeNumbers(defect);
         int count = qualityService.createDefect(defect);
         auditLogService.logEvent("defect_create", count > 0 ? "success" : "fail", getUserId(defect),
                 "itemId=" + defect.get("itemId"));
@@ -136,18 +140,58 @@ public class QualityController {
      * 유지보수: 필수 값 변경 시 항목을 조정한다.
      */
     private String validateCreate(Map<String, Object> defect) {
-        if (isBlank(defect.get("defectDate"))) {
-            return "불량일자는 필수입니다.";
+        String message = ValidationUtils.require(defect, "defectDate", "불량일자");
+        if (message != null) {
+            return message;
         }
-        if (isBlank(defect.get("itemId"))) {
-            return "품목 ID는 필수입니다.";
+        message = ValidationUtils.require(defect, "itemId", "품목 ID");
+        if (message != null) {
+            return message;
         }
-        if (isBlank(defect.get("defectQty"))) {
-            return "불량 수량은 필수입니다.";
+        message = ValidationUtils.require(defect, "defectQty", "불량 수량");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateDate(defect, "defectDate", "불량일자");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(defect, "itemId", "품목 ID", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(defect, "processId", "공정 ID", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(defect, "equipmentId", "설비 ID", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(defect, "defectTypeId", "불량 유형 ID", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(defect, "defectQty", "불량 수량", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
         }
         return null;
     }
 
+    /**
+     * 목적: 숫자 필드를 정규화한다.
+     * 기능: 숫자 문자열을 Integer로 변환해 저장한다.
+     * 이유: DB 타입 일관성을 유지하기 위함이다.
+     * 유지보수: 숫자 필드 추가 시 이 메서드를 보완한다.
+     */
+    private void normalizeNumbers(Map<String, Object> defect) {
+        ValidationUtils.normalizeInt(defect, "itemId");
+        ValidationUtils.normalizeInt(defect, "processId");
+        ValidationUtils.normalizeInt(defect, "equipmentId");
+        ValidationUtils.normalizeInt(defect, "defectTypeId");
+        ValidationUtils.normalizeInt(defect, "defectQty");
+    }
     /**
      * 목적: 공백 여부를 확인한다.
      * 기능: null 또는 빈 문자열인지 검사한다.
@@ -155,7 +199,7 @@ public class QualityController {
      * 유지보수: 검증 규칙 변경 시 로직을 보완한다.
      */
     private boolean isBlank(Object value) {
-        return value == null || value.toString().trim().isEmpty();
+        return ValidationUtils.isBlank(value);
     }
 
     /**

@@ -32,15 +32,24 @@
         <input type="text" name="baudRate" placeholder="9600" />
         <label>폴링 주기(ms)</label>
         <input type="text" name="pollingInterval" placeholder="1000" />
+        <label>페이지</label>
+        <input type="text" name="page" placeholder="1" />
+        <label>페이지 크기</label>
+        <input type="text" name="pageSize" placeholder="50" />
         <label>요청자 ID(감사로그용)</label>
         <input type="text" name="userId" placeholder="admin" />
       </form>
-      <div class="form-actions">
-        <button type="button" onclick="MesWeb.post('/api/equipment/list', 'equipmentForm', 'equipmentResult')">조회</button>
-        <button type="button" onclick="MesWeb.post('/api/equipment/create', 'equipmentForm', 'equipmentResult')">등록</button>
-        <button type="button" onclick="MesWeb.post('/api/equipment/update', 'equipmentForm', 'equipmentResult')">수정</button>
-        <button type="button" onclick="MesWeb.post('/api/equipment/delete', 'equipmentForm', 'equipmentResult')">삭제</button>
-      </div>
+      <c:set var="crudFormId" value="equipmentForm" />
+      <c:set var="crudResultId" value="equipmentResult" />
+      <c:set var="crudListUrl" value="/api/equipment/list" />
+      <c:set var="crudCreateUrl" value="/api/equipment/create" />
+      <c:set var="crudUpdateUrl" value="/api/equipment/update" />
+      <c:set var="crudDeleteUrl" value="/api/equipment/delete" />
+      <c:set var="crudListPerm" value="ACTION_EQUIPMENT_LIST" />
+      <c:set var="crudCreatePerm" value="ACTION_EQUIPMENT_CREATE" />
+      <c:set var="crudUpdatePerm" value="ACTION_EQUIPMENT_UPDATE" />
+      <c:set var="crudDeletePerm" value="ACTION_EQUIPMENT_DELETE" />
+      <jsp:include page="/WEB-INF/jsp/common/crud_buttons.jsp" />
       <pre id="equipmentResult" class="result-box"></pre>
     </div>
   <%@ include file="/WEB-INF/jsp/common/grid.jsp" %>

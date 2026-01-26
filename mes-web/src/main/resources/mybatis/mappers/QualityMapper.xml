@@ -19,8 +19,17 @@
       <if test="criteria.itemId != null">
         d.item_id = #{criteria.itemId}
       </if>
+      <if test="criteria.fromDate != null and criteria.fromDate != ''">
+        AND d.defect_date &gt;= #{criteria.fromDate}
+      </if>
+      <if test="criteria.toDate != null and criteria.toDate != ''">
+        AND d.defect_date &lt;= #{criteria.toDate}
+      </if>
     </where>
     ORDER BY d.id DESC
+    <if test="criteria.limit != null and criteria.offset != null">
+      LIMIT #{criteria.limit} OFFSET #{criteria.offset}
+    </if>
   </select>
 
   <!--

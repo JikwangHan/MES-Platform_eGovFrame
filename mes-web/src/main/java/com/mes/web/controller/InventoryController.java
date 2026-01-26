@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.mes.web.common.audit.AuditLogService;
+import com.mes.web.common.validation.CriteriaUtils;
+import com.mes.web.common.validation.ValidationUtils;
 import com.mes.web.service.InventoryService;
 
 /**
@@ -91,6 +93,7 @@ public class InventoryController {
     @PostMapping("/api/inventory/list")
     @ResponseBody
     public Map<String, Object> list(@RequestParam Map<String, Object> criteria) {
+        CriteriaUtils.applyPaging(criteria, 50, 200);
         List<Map<String, Object>> inventories = inventoryService.findInventoryStatus(criteria);
         Map<String, Object> result = new HashMap<String, Object>();
         result.put("result", "success");
@@ -111,6 +114,7 @@ public class InventoryController {
         if (validationError != null) {
             return buildFail(validationError);
         }
+        normalizeNumbers(inventory);
         int count = inventoryService.createInventoryStatus(inventory);
         auditLogService.logEvent("inventory_create", count > 0 ? "success" : "fail", getUserId(inventory),
                 "itemId=" + inventory.get("itemId"));
@@ -133,6 +137,7 @@ public class InventoryController {
         if (validationError != null) {
             return buildFail(validationError);
         }
+        normalizeNumbers(inventory);
         int count = inventoryService.updateInventoryStatus(inventory);
         auditLogService.logEvent("inventory_update", count > 0 ? "success" : "fail", getUserId(inventory),
                 "id=" + inventory.get("id"));
@@ -169,14 +174,37 @@ public class InventoryController {
      * 유지보수: 필수 값 변경 시 항목을 조정한다.
      */
     private String validateCreate(Map<String, Object> inventory) {
-        if (isBlank(inventory.get("itemId"))) {
-            return "품목 ID는 필수입니다.";
+        String message = ValidationUtils.require(inventory, "itemId", "품목 ID");
+        if (message != null) {
+            return message;
         }
-        if (isBlank(inventory.get("warehouseId"))) {
-            return "창고 ID는 필수입니다.";
+        message = ValidationUtils.require(inventory, "warehouseId", "창고 ID");
+        if (message != null) {
+            return message;
         }
-        if (isBlank(inventory.get("stockQty"))) {
-            return "재고 수량은 필수입니다.";
+        message = ValidationUtils.require(inventory, "stockQty", "재고 수량");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateDate(inventory, "lastInDate", "입고일자");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateDate(inventory, "lastOutDate", "출고일자");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(inventory, "itemId", "품목 ID", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(inventory, "warehouseId", "창고 ID", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(inventory, "stockQty", "재고 수량", 0, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
         }
         return null;
     }
@@ -188,12 +216,41 @@ public class InventoryController {
      * 유지보수: 필수 값 변경 시 항목을 조정한다.
      */
     private String validateUpdate(Map<String, Object> inventory) {
-        if (isBlank(inventory.get("id"))) {
-            return "재고 ID는 필수입니다.";
+        String message = ValidationUtils.require(inventory, "id", "재고 ID");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(inventory, "id", "재고 ID", 1, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateDate(inventory, "lastInDate", "입고일자");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateDate(inventory, "lastOutDate", "출고일자");
+        if (message != null) {
+            return message;
+        }
+        message = ValidationUtils.validateInt(inventory, "stockQty", "재고 수량", 0, Integer.MAX_VALUE);
+        if (message != null) {
+            return message;
         }
         return null;
     }
 
+    /**
+     * 목적: 숫자 필드를 정규화한다.
+     * 기능: 숫자 문자열을 Integer로 변환해 저장한다.
+     * 이유: DB 타입 일관성을 유지하기 위함이다.
+     * 유지보수: 숫자 필드 추가 시 이 메서드를 보완한다.
+     */
+    private void normalizeNumbers(Map<String, Object> inventory) {
+        ValidationUtils.normalizeInt(inventory, "id");
+        ValidationUtils.normalizeInt(inventory, "itemId");
+        ValidationUtils.normalizeInt(inventory, "warehouseId");
+        ValidationUtils.normalizeInt(inventory, "stockQty");
+    }
     /**
      * 목적: 공백 여부를 확인한다.
      * 기능: null 또는 빈 문자열인지 검사한다.
@@ -201,7 +258,7 @@ public class InventoryController {
      * 유지보수: 검증 규칙 변경 시 로직을 보완한다.
      */
     private boolean isBlank(Object value) {
-        return value == null || value.toString().trim().isEmpty();
+        return ValidationUtils.isBlank(value);
     }
 
     /**
