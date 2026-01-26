@@ -3,6 +3,7 @@ package com.mes.web.common.auth;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 목적: 권한 매트릭스 화면용 카탈로그를 제공한다.
@@ -82,6 +83,22 @@ public final class PermissionCatalog {
         groups.add(new Group("관리", buildAdminItems()));
 
         return groups;
+    }
+
+    /**
+     * 목적: 모든 권한 키 목록을 생성한다.
+     * 기능: 그룹 목록에서 권한 키를 수집해 Set으로 반환한다.
+     * 이유: 저장 시 유효한 권한 키만 허용하기 위함이다.
+     * 유지보수: 그룹 구성 변경 시 이 메서드를 보완한다.
+     */
+    public static Set<String> buildAllKeys() {
+        Set<String> keys = new java.util.LinkedHashSet<String>();
+        for (Group group : buildGroups()) {
+            for (Item item : group.getItems()) {
+                keys.add(item.getKey());
+            }
+        }
+        return keys;
     }
 
     private static List<Item> buildMenuItems() {

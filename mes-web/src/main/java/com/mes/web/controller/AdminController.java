@@ -7,8 +7,12 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.bind.annotation.GetMapping;
 
+import com.mes.web.common.auth.PermissionAdminService;
 import com.mes.web.common.auth.PermissionCatalog;
 import com.mes.web.common.auth.PermissionService;
 
@@ -22,6 +26,7 @@ import com.mes.web.common.auth.PermissionService;
 public class AdminController {
 
     private final PermissionService permissionService;
+    private final PermissionAdminService permissionAdminService;
 
     /**
      * 목적: 권한 서비스를 주입받는다.
@@ -30,8 +35,9 @@ public class AdminController {
      * 유지보수: 권한 서비스 변경 시 주입만 수정한다.
      */
     @Autowired
-    public AdminController(PermissionService permissionService) {
+    public AdminController(PermissionService permissionService, PermissionAdminService permissionAdminService) {
         this.permissionService = permissionService;
+        this.permissionAdminService = permissionAdminService;
     }
 
     /**
@@ -61,6 +67,21 @@ public class AdminController {
         rolePermissions.put("VIEWER", permissionService.buildPermissionMap("VIEWER"));
         model.addAttribute("rolePermissions", rolePermissions);
         return "admin/permissions";
+    }
+
+    /**
+     * 목적: 권한 매트릭스 저장을 처리한다.
+     * 기능: 선택된 권한을 역할 기준으로 저장한다.
+     * 이유: 서버 기준 권한 정책을 관리자 화면에서 수정하기 위함이다.
+     * 유지보수: 저장 규칙 변경 시 서비스 로직을 수정한다.
+     */
+    @PostMapping("/admin/permissions/save")
+    public String savePermissions(@RequestParam("roleCode") String roleCode,
+                                  @RequestParam(value = "permKeys", required = false) java.util.List<String> permKeys,
+                                  RedirectAttributes redirectAttributes) {
+        String message = permissionAdminService.saveRolePermissions(roleCode, permKeys);
+        redirectAttributes.addFlashAttribute("saveMessage", message);
+        return "redirect:/admin/permissions";
     }
 
     /**
