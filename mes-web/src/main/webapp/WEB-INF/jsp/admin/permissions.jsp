@@ -13,6 +13,9 @@
   <div class="content">
     <h2>사용자 권한</h2>
     <p>권한 매트릭스(서버 기준)</p>
+    <c:if test="${not empty saveMessage}">
+      <p class="notice">${saveMessage}</p>
+    </c:if>
     <div class="permission-matrix">
       <table>
         <thead>
@@ -33,17 +36,67 @@
                   <td class="group" rowspan="${fn:length(group.items)}">${group.name}</td>
                 </c:if>
                 <td>${item.label}</td>
-                <td class="center">${rolePermissions['SYSTEM_ADMIN'][item.key] ? 'Y' : 'N'}</td>
-                <td class="center">${rolePermissions['MANAGER'][item.key] ? 'Y' : 'N'}</td>
-                <td class="center">${rolePermissions['OPERATOR'][item.key] ? 'Y' : 'N'}</td>
-                <td class="center">${rolePermissions['VIEWER'][item.key] ? 'Y' : 'N'}</td>
+                <td class="center">
+                  <input type="checkbox" class="perm-checkbox" data-role="SYSTEM_ADMIN" data-key="${item.key}"
+                         ${rolePermissions['SYSTEM_ADMIN'][item.key] ? 'checked' : ''} />
+                </td>
+                <td class="center">
+                  <input type="checkbox" class="perm-checkbox" data-role="MANAGER" data-key="${item.key}"
+                         ${rolePermissions['MANAGER'][item.key] ? 'checked' : ''} />
+                </td>
+                <td class="center">
+                  <input type="checkbox" class="perm-checkbox" data-role="OPERATOR" data-key="${item.key}"
+                         ${rolePermissions['OPERATOR'][item.key] ? 'checked' : ''} />
+                </td>
+                <td class="center">
+                  <input type="checkbox" class="perm-checkbox" data-role="VIEWER" data-key="${item.key}"
+                         ${rolePermissions['VIEWER'][item.key] ? 'checked' : ''} />
+                </td>
               </tr>
             </c:forEach>
           </c:forEach>
         </tbody>
       </table>
     </div>
+    <div class="permission-actions">
+      <form id="permissionSaveForm" method="post" action="${pageContext.request.contextPath}/admin/permissions/save">
+        <label>저장 대상 역할</label>
+        <select id="roleSelect" name="roleCode">
+          <option value="SYSTEM_ADMIN">SYSTEM_ADMIN</option>
+          <option value="MANAGER">MANAGER</option>
+          <option value="OPERATOR">OPERATOR</option>
+          <option value="VIEWER">VIEWER</option>
+        </select>
+        <button type="button" onclick="savePermissions()">권한 저장</button>
+      </form>
+      <p class="notice">권한 저장 시 선택된 역할의 권한이 즉시 덮어쓰여집니다.</p>
+    </div>
   </div>
   <%@ include file="/WEB-INF/jsp/common/footer.jsp" %>
+  <script>
+    // 목적: 권한 저장 폼에 선택된 권한 키를 주입한다.
+    // 기능: 선택된 역할의 체크박스를 읽어 hidden input으로 추가한다.
+    // 이유: 서버가 permKeys 배열을 받을 수 있도록 하기 위함이다.
+    // 유지보수: 역할 목록이 바뀌면 선택 UI를 수정한다.
+    function savePermissions() {
+      var form = document.getElementById("permissionSaveForm");
+      var role = document.getElementById("roleSelect").value;
+      var existing = form.querySelectorAll("input[name='permKeys']");
+      for (var i = 0; i < existing.length; i++) {
+        existing[i].remove();
+      }
+      var boxes = document.querySelectorAll(".perm-checkbox[data-role='" + role + "']");
+      for (var j = 0; j < boxes.length; j++) {
+        if (boxes[j].checked) {
+          var input = document.createElement("input");
+          input.type = "hidden";
+          input.name = "permKeys";
+          input.value = boxes[j].getAttribute("data-key");
+          form.appendChild(input);
+        }
+      }
+      form.submit();
+    }
+  </script>
 </body>
 </html>

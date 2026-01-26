@@ -122,3 +122,25 @@ body {
 .permission-matrix td.center {
   text-align: center;
 }
+
+.permission-actions {
+  margin-top: 16px;
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 12px;
+}
+
+.permission-actions select {
+  margin-left: 8px;
+  padding: 6px;
+}
+
+.permission-actions button {
+  margin-left: 8px;
+}
+
+.notice {
+  margin-top: 8px;
+  color: #2f4f4f;
+  font-size: 13px;
+}

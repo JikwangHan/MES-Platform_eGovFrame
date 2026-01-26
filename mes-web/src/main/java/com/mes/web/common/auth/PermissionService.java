@@ -3,6 +3,7 @@ package com.mes.web.common.auth;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -19,6 +20,19 @@ public class PermissionService {
     private static final String ROLE_OPERATOR = "OPERATOR";
     private static final String ROLE_VIEWER = "VIEWER";
 
+    private final PermissionRepository permissionRepository;
+
+    /**
+     * 목적: 권한 저장소를 주입받는다.
+     * 기능: DB 기반 권한을 조회할 수 있게 한다.
+     * 이유: 권한 정책을 서버에서 확정하고 관리 화면과 동기화하기 위함이다.
+     * 유지보수: 저장소 변경 시 주입만 수정한다.
+     */
+    @Autowired
+    public PermissionService(PermissionRepository permissionRepository) {
+        this.permissionRepository = permissionRepository;
+    }
+
     /**
      * 목적: 역할 기준 권한 맵을 생성한다.
      * 기능: 메뉴/버튼/API 권한을 Map으로 반환한다.
@@ -28,6 +42,16 @@ public class PermissionService {
     public Map<String, Boolean> buildPermissionMap(String role) {
         Map<String, Boolean> permissions = new HashMap<String, Boolean>();
         initializeAll(permissions);
+
+        Map<String, Boolean> stored = permissionRepository.loadRolePermissions(role);
+        if (stored != null && !stored.isEmpty()) {
+            for (Map.Entry<String, Boolean> entry : stored.entrySet()) {
+                if (permissions.containsKey(entry.getKey())) {
+                    permissions.put(entry.getKey(), entry.getValue());
+                }
+            }
+            return permissions;
+        }
 
         if (ROLE_SYSTEM_ADMIN.equalsIgnoreCase(role)) {
             grantAll(permissions);

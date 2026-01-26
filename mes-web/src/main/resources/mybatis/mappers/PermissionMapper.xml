@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mes.web.dao.mapper.PermissionMapper">
+  <!--
+    목적: 역할별 권한을 조회한다.
+    기능: role_code 기준으로 권한 목록을 반환한다.
+    이유: 권한 검증과 화면 표시를 위해 필요하다.
+    유지보수: 조회 컬럼 확장 시 SQL을 수정한다.
+  -->
+  <select id="selectRolePermissions" resultType="map">
+    SELECT
+      role_code AS roleCode,
+      perm_key AS permKey,
+      allowed AS allowed
+    FROM role_permissions
+    WHERE role_code = #{roleCode}
+  </select>
+
+  <!--
+    목적: 역할 권한을 삭제한다.
+    기능: 지정된 역할의 권한을 모두 제거한다.
+    이유: 저장 시 기존 권한을 교체하기 위함이다.
+    유지보수: 삭제 조건 변경 시 SQL을 수정한다.
+  -->
+  <delete id="deleteRolePermissions">
+    DELETE FROM role_permissions
+    WHERE role_code = #{roleCode}
+  </delete>
+
+  <!--
+    목적: 역할 권한을 저장한다.
+    기능: 역할별 권한 목록을 일괄 삽입한다.
+    이유: 권한 정책을 DB에 반영하기 위함이다.
+    유지보수: 저장 구조 변경 시 SQL을 수정한다.
+  -->
+  <insert id="insertRolePermissions">
+    INSERT INTO role_permissions (
+      role_code,
+      perm_key,
+      allowed
+    ) VALUES
+    <foreach collection="rows" item="row" separator=",">
+      (#{row.roleCode}, #{row.permKey}, #{row.allowed})
+    </foreach>
+  </insert>
+</mapper>
