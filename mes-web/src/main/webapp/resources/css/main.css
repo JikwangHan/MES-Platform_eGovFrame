@@ -93,3 +93,32 @@ body {
   margin-top: 12px;
   white-space: pre-wrap;
 }
+
+.permission-matrix table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  margin-top: 12px;
+}
+
+.permission-matrix th,
+.permission-matrix td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  font-size: 13px;
+}
+
+.permission-matrix th {
+  background: #f0f2f5;
+  text-align: center;
+}
+
+.permission-matrix td.group {
+  background: #fafafa;
+  font-weight: bold;
+  width: 120px;
+}
+
+.permission-matrix td.center {
+  text-align: center;
+}

@@ -45,3 +45,9 @@ CRUD 스모크(companyA 테넌트)
 
 감사 로그 스모크(서버 기동 후)
 - 결과 요약: 감사 로그에 ip_hash/user_agent_hash/detail_hash 값 저장 확인
+
+권한 매트릭스 화면 스모크(서버 기동 후)
+- 결과 요약: 관리자 권한에서 /admin/permissions 접근 200 확인, 조회 전용 계정 접근 403 확인
+
+조회 조건 검증 스모크(서버 기동 후)
+- 결과 요약: 잘못된 날짜(YYYY-99-99) 입력 시 result=fail 응답 확인
