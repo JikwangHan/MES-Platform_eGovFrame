@@ -53,6 +53,9 @@ public class AuthFilter extends OncePerRequestFilter {
      */
     private boolean isAllowedPath(String path) {
         return path.endsWith("/login")
+                || path.endsWith("/signup")
+                || path.startsWith("/signup/")
+                || path.endsWith("/first-login")
                 || path.contains("/resources/")
                 || path.endsWith("/index.jsp")
                 || path.equals("/");

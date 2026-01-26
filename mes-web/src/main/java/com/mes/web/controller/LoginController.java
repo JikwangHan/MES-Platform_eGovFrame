@@ -51,7 +51,7 @@ public class LoginController {
      */
     @GetMapping("/login")
     public String loginPage() {
-        return "common/login";
+        return "page/auth/login";
     }
 
     /**
@@ -70,7 +70,7 @@ public class LoginController {
         if (authUser == null) {
             auditLogService.logEvent("login_fail", "fail", userId, "userId=" + userId);
             model.addAttribute("errorMessage", "아이디 또는 비밀번호가 올바르지 않습니다.");
-            return "common/login";
+            return "page/auth/login";
         }
         HttpSession session = request.getSession();
         session.setAttribute(SESSION_AUTH_KEY, authUser);
@@ -99,5 +99,16 @@ public class LoginController {
         request.getSession().invalidate();
         auditLogService.logEvent("logout", "success", userId, "manual logout");
         return "redirect:/login";
+    }
+
+    /**
+     * 목적: 최초 로그인(비밀번호 변경) 화면을 제공한다.
+     * 기능: /first-login 요청을 JSP로 연결한다.
+     * 이유: 최초 로그인 안내 화면을 별도 페이지로 제공하기 위함이다.
+     * 유지보수: 화면 경로 변경 시 반환 값만 수정한다.
+     */
+    @GetMapping("/first-login")
+    public String firstLogin() {
+        return "page/auth/first-login";
     }
 }

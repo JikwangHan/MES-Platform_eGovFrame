@@ -8,6 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.mes.web.common.crypto.CryptoException;
+import com.mes.web.common.crypto.CryptoService;
+
 /**
  * 목적: 개발 단계용 로그인 검증을 제공한다.
  * 기능: DB 사용자 조회 및 비밀번호 해시 검증을 수행한다.
@@ -22,6 +25,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final com.mes.web.dao.UserDao userDao;
+    private final CryptoService cryptoService;
 
     /**
      * 목적: 사용자 DAO를 주입받는다.
@@ -30,8 +34,9 @@ public class AuthServiceImpl implements AuthService {
      * 유지보수: DAO 교체 시 주입만 변경한다.
      */
     @Autowired
-    public AuthServiceImpl(com.mes.web.dao.UserDao userDao) {
+    public AuthServiceImpl(com.mes.web.dao.UserDao userDao, CryptoService cryptoService) {
         this.userDao = userDao;
+        this.cryptoService = cryptoService;
     }
 
     /**
@@ -52,6 +57,10 @@ public class AuthServiceImpl implements AuthService {
             LOGGER.warn("로그인 실패(잠금 상태): {}", userId);
             return null;
         }
+        if (!"active".equalsIgnoreCase(status)) {
+            LOGGER.warn("로그인 실패(비활성 상태): {} 상태={}", userId, status);
+            return null;
+        }
         String passwordHash = String.valueOf(user.get("password_hash"));
         if (!passwordEncoder.matches(password, passwordHash)) {
             userDao.recordLoginFail(userId, LOCK_THRESHOLD);
@@ -60,9 +69,15 @@ public class AuthServiceImpl implements AuthService {
         }
         userDao.recordLoginSuccess(userId);
         String userName = String.valueOf(user.get("user_name"));
+        String resolvedName = userName;
+        try {
+            resolvedName = cryptoService.decrypt(userName);
+        } catch (CryptoException ex) {
+            LOGGER.debug("사용자 이름 복호화 실패, 원문 값 사용: {}", ex.getMessage());
+        }
         String role = String.valueOf(user.get("role"));
         LOGGER.info("로그인 성공: {}", userId);
-        return new AuthUser(userId, userName, role);
+        return new AuthUser(userId, resolvedName, role);
     }
 
     /**
