@@ -31,4 +31,28 @@ public interface EmailService {
      * 유지보수: 템플릿 변경 시 구현체를 수정한다.
      */
     void sendApprovalResult(String toEmail, String userId, boolean approved);
+
+    /**
+     * 목적: 이메일 원문을 발송한다.
+     * 기능: 제목/텍스트/HTML 본문을 그대로 전송한다.
+     * 이유: 재시도 큐나 템플릿 기반 발송에 재사용하기 위함이다.
+     * 유지보수: 본문 포맷 정책 변경 시 구현체를 수정한다.
+     */
+    void sendRaw(String toEmail, String subject, String textBody, String htmlBody);
+
+    /**
+     * 목적: 재시도 큐 크기를 조회한다.
+     * 기능: 현재 큐에 남아있는 실패 건수를 반환한다.
+     * 이유: 관리자 화면에 재시도 대기 건수를 표시하기 위함이다.
+     * 유지보수: 큐 구현 변경 시 반환 로직을 수정한다.
+     */
+    int getRetryQueueSize();
+
+    /**
+     * 목적: 재시도 큐를 즉시 재처리한다.
+     * 기능: 큐에 적재된 메일을 다시 발송한다.
+     * 이유: 운영자가 수동 재처리를 수행할 수 있게 하기 위함이다.
+     * 유지보수: 재시도 정책 변경 시 구현체를 수정한다.
+     */
+    int retryFailedEmails();
 }

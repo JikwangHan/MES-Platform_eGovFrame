@@ -1,5 +1,6 @@
 package com.mes.web.controller;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import com.mes.web.common.audit.AuditLogService;
+import com.mes.web.common.approval.ApprovalReasonCatalog;
 import com.mes.web.common.auth.PermissionAdminService;
 import com.mes.web.common.auth.PermissionCatalog;
 import com.mes.web.common.auth.PermissionService;
@@ -21,6 +23,7 @@ import com.mes.web.common.crypto.CryptoException;
 import com.mes.web.common.crypto.CryptoService;
 import com.mes.web.common.mail.EmailService;
 import com.mes.web.dao.UserDao;
+import com.mes.web.service.ApprovalHistoryService;
 
 /**
  * 목적: 관리자 화면을 제공한다.
@@ -38,6 +41,7 @@ public class AdminController {
     private final AuditLogService auditLogService;
     private final CryptoService cryptoService;
     private final EmailService emailService;
+    private final ApprovalHistoryService approvalHistoryService;
 
     /**
      * 목적: 권한 서비스를 주입받는다.
@@ -51,7 +55,8 @@ public class AdminController {
                            UserDao userDao,
                            AuditLogService auditLogService,
                            CryptoService cryptoService,
-                           EmailService emailService) {
+                           EmailService emailService,
+                           ApprovalHistoryService approvalHistoryService) {
         this.permissionService = permissionService;
         this.permissionAdminService = permissionAdminService;
         this.roleAdminService = roleAdminService;
@@ -59,6 +64,7 @@ public class AdminController {
         this.auditLogService = auditLogService;
         this.cryptoService = cryptoService;
         this.emailService = emailService;
+        this.approvalHistoryService = approvalHistoryService;
     }
 
     /**
@@ -68,8 +74,69 @@ public class AdminController {
      * 유지보수: 초기화/권한 기능 추가 시 컨트롤러를 확장한다.
      */
     @GetMapping("/admin/users")
-    public String users(Model model) {
-        model.addAttribute("pendingUsers", userDao.findPendingApprovalUsers());
+    public String users(Model model,
+                        @RequestParam(value = "pendingKeyword", required = false) String pendingKeyword,
+                        @RequestParam(value = "pendingRole", required = false) String pendingRole,
+                        @RequestParam(value = "pendingFromDate", required = false) String pendingFromDate,
+                        @RequestParam(value = "pendingToDate", required = false) String pendingToDate,
+                        @RequestParam(value = "pendingPage", required = false, defaultValue = "1") int pendingPage,
+                        @RequestParam(value = "pendingSize", required = false, defaultValue = "10") int pendingSize,
+                        @RequestParam(value = "historyKeyword", required = false) String historyKeyword,
+                        @RequestParam(value = "historyAction", required = false) String historyAction,
+                        @RequestParam(value = "historyFromDate", required = false) String historyFromDate,
+                        @RequestParam(value = "historyToDate", required = false) String historyToDate,
+                        @RequestParam(value = "historyPage", required = false, defaultValue = "1") int historyPage,
+                        @RequestParam(value = "historySize", required = false, defaultValue = "10") int historySize) {
+        int safePendingPage = Math.max(1, pendingPage);
+        int safePendingSize = Math.min(Math.max(1, pendingSize), 50);
+        int pendingOffset = (safePendingPage - 1) * safePendingSize;
+
+        Map<String, Object> pendingParams = new HashMap<String, Object>();
+        pendingParams.put("keyword", normalize(pendingKeyword));
+        pendingParams.put("role", normalize(pendingRole));
+        pendingParams.put("fromDate", normalize(pendingFromDate));
+        pendingParams.put("toDate", normalize(pendingToDate));
+        pendingParams.put("offset", pendingOffset);
+        pendingParams.put("limit", safePendingSize);
+
+        int pendingTotal = userDao.countPendingApprovalUsers(pendingParams);
+        int pendingTotalPages = (int) Math.ceil(pendingTotal / (double) safePendingSize);
+        model.addAttribute("pendingUsers", userDao.findPendingApprovalUsers(pendingParams));
+        model.addAttribute("pendingTotal", pendingTotal);
+        model.addAttribute("pendingTotalPages", Math.max(1, pendingTotalPages));
+        model.addAttribute("pendingPage", safePendingPage);
+        model.addAttribute("pendingSize", safePendingSize);
+        model.addAttribute("pendingKeyword", normalize(pendingKeyword));
+        model.addAttribute("pendingRole", normalize(pendingRole));
+        model.addAttribute("pendingFromDate", normalize(pendingFromDate));
+        model.addAttribute("pendingToDate", normalize(pendingToDate));
+
+        int safeHistoryPage = Math.max(1, historyPage);
+        int safeHistorySize = Math.min(Math.max(1, historySize), 50);
+        int historyOffset = (safeHistoryPage - 1) * safeHistorySize;
+        Map<String, Object> historyParams = new HashMap<String, Object>();
+        historyParams.put("keyword", normalize(historyKeyword));
+        historyParams.put("action", normalize(historyAction));
+        historyParams.put("fromDate", normalize(historyFromDate));
+        historyParams.put("toDate", normalize(historyToDate));
+        historyParams.put("offset", historyOffset);
+        historyParams.put("limit", safeHistorySize);
+
+        int historyTotal = approvalHistoryService.countHistory(historyParams);
+        int historyTotalPages = (int) Math.ceil(historyTotal / (double) safeHistorySize);
+        model.addAttribute("approvalHistoryEnabled", isApprovalHistoryEnabled());
+        model.addAttribute("historyRows", approvalHistoryService.loadHistory(historyParams));
+        model.addAttribute("historyTotal", historyTotal);
+        model.addAttribute("historyTotalPages", Math.max(1, historyTotalPages));
+        model.addAttribute("historyPage", safeHistoryPage);
+        model.addAttribute("historySize", safeHistorySize);
+        model.addAttribute("historyKeyword", normalize(historyKeyword));
+        model.addAttribute("historyAction", normalize(historyAction));
+        model.addAttribute("historyFromDate", normalize(historyFromDate));
+        model.addAttribute("historyToDate", normalize(historyToDate));
+
+        model.addAttribute("approvalReasons", ApprovalReasonCatalog.list());
+        model.addAttribute("emailRetryQueueSize", emailService.getRetryQueueSize());
         return "admin/users";
     }
 
@@ -81,11 +148,14 @@ public class AdminController {
      */
     @PostMapping("/admin/users/approve")
     public String approveUser(@RequestParam("userId") String userId,
+                              @RequestParam(value = "reasonCode", required = false) String reasonCode,
                               @RequestParam(value = "reason", required = false) String reason,
                               RedirectAttributes redirectAttributes) {
         userDao.updateUserStatus(userId, "active");
-        String detail = "userId=" + userId + ",reason=" + safeReason(reason);
+        String normalizedCode = normalizeReasonCode(reasonCode, "APPROVE_GENERAL");
+        String detail = "userId=" + userId + ",reasonCode=" + normalizedCode + ",reason=" + safeReason(reason);
         auditLogService.logEvent("admin.user.approve", "success", getAuthUserId(), detail);
+        approvalHistoryService.record(userId, "approve", normalizedCode, reason, getAuthUserId());
         notifyApprovalEmail(userId, true);
         redirectAttributes.addFlashAttribute("saveMessage", "승인이 완료되었습니다.");
         return "redirect:/admin/users";
@@ -99,17 +169,33 @@ public class AdminController {
      */
     @PostMapping("/admin/users/reject")
     public String rejectUser(@RequestParam("userId") String userId,
+                             @RequestParam(value = "reasonCode", required = false) String reasonCode,
                              @RequestParam(value = "reason", required = false) String reason,
                              RedirectAttributes redirectAttributes) {
         if (reason == null || reason.trim().isEmpty()) {
             redirectAttributes.addFlashAttribute("errorMessage", "반려 사유를 입력해 주세요.");
             return "redirect:/admin/users";
         }
+        String normalizedCode = normalizeReasonCode(reasonCode, "REJECT_OTHER");
         userDao.updateUserStatus(userId, "inactive");
-        String detail = "userId=" + userId + ",reason=" + safeReason(reason);
+        String detail = "userId=" + userId + ",reasonCode=" + normalizedCode + ",reason=" + safeReason(reason);
         auditLogService.logEvent("admin.user.reject", "success", getAuthUserId(), detail);
+        approvalHistoryService.record(userId, "reject", normalizedCode, reason, getAuthUserId());
         notifyApprovalEmail(userId, false);
         redirectAttributes.addFlashAttribute("saveMessage", "반려 처리되었습니다.");
+        return "redirect:/admin/users";
+    }
+
+    /**
+     * 목적: 이메일 재시도 큐를 처리한다.
+     * 기능: 큐에 적재된 실패 메일을 재발송한다.
+     * 이유: 관리자가 수동으로 복구할 수 있게 하기 위함이다.
+     * 유지보수: 재시도 정책 변경 시 메시지를 보완한다.
+     */
+    @PostMapping("/admin/users/email-retry")
+    public String retryEmailQueue(RedirectAttributes redirectAttributes) {
+        int successCount = emailService.retryFailedEmails();
+        redirectAttributes.addFlashAttribute("saveMessage", "재시도 완료: 성공 " + successCount + "건");
         return "redirect:/admin/users";
     }
 
@@ -154,6 +240,45 @@ public class AdminController {
             return "none";
         }
         return reason.replace("\n", " ").replace("\r", " ").replace(",", " ");
+    }
+
+    /**
+     * 목적: 입력 문자열을 정규화한다.
+     * 기능: 공백을 제거하고 빈 값이면 null을 반환한다.
+     * 이유: 검색 조건을 일관되게 처리하기 위함이다.
+     * 유지보수: 입력 정책 변경 시 로직을 수정한다.
+     */
+    private String normalize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    /**
+     * 목적: 사유 코드를 정규화한다.
+     * 기능: 값이 없으면 기본 코드를 반환한다.
+     * 이유: 이력/로그에 항상 코드가 남도록 하기 위함이다.
+     * 유지보수: 기본 코드 정책 변경 시 수정한다.
+     */
+    private String normalizeReasonCode(String reasonCode, String fallback) {
+        String normalized = normalize(reasonCode);
+        return normalized == null ? fallback : normalized;
+    }
+
+    /**
+     * 목적: 승인 이력 기능 활성화 여부를 확인한다.
+     * 기능: 시스템 속성/환경 변수를 검사한다.
+     * 이유: 테이블 미구성 상태에서 오류를 방지하기 위함이다.
+     * 유지보수: 설정 키 변경 시 수정한다.
+     */
+    private boolean isApprovalHistoryEnabled() {
+        String value = System.getProperty("mes.approval.history.enabled");
+        if (value == null || value.trim().isEmpty()) {
+            value = System.getenv("MES_APPROVAL_HISTORY_ENABLED");
+        }
+        return Boolean.parseBoolean(value);
     }
 
     /**

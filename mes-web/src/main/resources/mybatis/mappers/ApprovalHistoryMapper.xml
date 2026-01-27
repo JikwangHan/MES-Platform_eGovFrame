@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mes.web.dao.mapper.ApprovalHistoryMapper">
+  <!--
+    목적: 승인 이력을 저장한다.
+    기능: 승인/반려 기록을 DB에 저장한다.
+    이유: 이력 조회 화면에 사용하기 위함이다.
+    유지보수: 컬럼 추가 시 INSERT 구문을 수정한다.
+  -->
+  <insert id="insertHistory" parameterType="map">
+    INSERT INTO user_approval_history (
+      user_id,
+      action_type,
+      reason_code,
+      reason_text_enc,
+      actor_user_id,
+      created_at
+    ) VALUES (
+      #{params.userId},
+      #{params.action},
+      #{params.reasonCode},
+      #{params.reasonTextEnc},
+      #{params.actorUserId},
+      NOW()
+    )
+  </insert>
+
+  <!--
+    목적: 승인 이력 목록을 조회한다.
+    기능: 검색 조건/페이징을 적용해 목록을 반환한다.
+    이유: 관리자 이력 조회에 사용하기 위함이다.
+    유지보수: 조건 추가 시 SQL을 수정한다.
+  -->
+  <select id="findHistory" resultType="map">
+    SELECT
+      user_id,
+      action_type,
+      reason_code,
+      reason_text_enc,
+      actor_user_id,
+      created_at
+    FROM user_approval_history
+    WHERE 1=1
+    <if test="params.keyword != null and params.keyword != ''">
+      AND user_id LIKE CONCAT('%', #{params.keyword}, '%')
+    </if>
+    <if test="params.action != null and params.action != ''">
+      AND action_type = #{params.action}
+    </if>
+    <if test="params.fromDate != null and params.fromDate != ''">
+      AND DATE(created_at) &gt;= #{params.fromDate}
+    </if>
+    <if test="params.toDate != null and params.toDate != ''">
+      AND DATE(created_at) &lt;= #{params.toDate}
+    </if>
+    ORDER BY created_at DESC
+    LIMIT #{params.offset}, #{params.limit}
+  </select>
+
+  <!--
+    목적: 승인 이력 개수를 조회한다.
+    기능: 검색 조건에 해당하는 총 건수를 반환한다.
+    이유: 페이징 계산에 사용하기 위함이다.
+    유지보수: 조건 추가 시 SQL을 수정한다.
+  -->
+  <select id="countHistory" resultType="int">
+    SELECT COUNT(1)
+    FROM user_approval_history
+    WHERE 1=1
+    <if test="params.keyword != null and params.keyword != ''">
+      AND user_id LIKE CONCAT('%', #{params.keyword}, '%')
+    </if>
+    <if test="params.action != null and params.action != ''">
+      AND action_type = #{params.action}
+    </if>
+    <if test="params.fromDate != null and params.fromDate != ''">
+      AND DATE(created_at) &gt;= #{params.fromDate}
+    </if>
+    <if test="params.toDate != null and params.toDate != ''">
+      AND DATE(created_at) &lt;= #{params.toDate}
+    </if>
+  </select>
+</mapper>
