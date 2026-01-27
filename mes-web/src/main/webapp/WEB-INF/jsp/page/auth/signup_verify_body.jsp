@@ -24,6 +24,12 @@
       <c:if test="${not empty errorMessage}">
         <div class="error">${errorMessage}</div>
       </c:if>
+      <c:if test="${not empty verifyError}">
+        <div class="error">${verifyError}</div>
+      </c:if>
+      <c:if test="${verifySent eq true}">
+        <div class="success">인증 메일이 발송되었습니다. 받은 코드를 입력해 주세요.</div>
+      </c:if>
       <c:if test="${not empty devCode}">
         <div class="success">개발용 인증 코드: ${devCode}</div>
       </c:if>

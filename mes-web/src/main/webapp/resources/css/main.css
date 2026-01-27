@@ -403,6 +403,19 @@ body {
   margin: 0;
 }
 
+.signup-agree .link-button {
+  border: none;
+  background: transparent;
+  color: #0b84c6;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.signup-agree .link-button:hover {
+  text-decoration: underline;
+}
+
 .verify-summary {
   display: flex;
   flex-direction: column;

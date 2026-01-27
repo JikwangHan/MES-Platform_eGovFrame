@@ -66,10 +66,12 @@
           <label class="agree-line">
             <input type="checkbox" name="agreeTerms" />
             <span>이용약관에 동의합니다. (필수)</span>
+            <button type="button" class="link-button" data-bs-toggle="modal" data-bs-target="#termsModal">전문보기</button>
           </label>
           <label class="agree-line">
             <input type="checkbox" name="agreePrivacy" />
             <span>개인정보 처리방침에 동의합니다. (필수)</span>
+            <button type="button" class="link-button" data-bs-toggle="modal" data-bs-target="#privacyModal">전문보기</button>
           </label>
           <label class="agree-line">
             <input type="checkbox" name="agreeMarketing" />
@@ -104,5 +106,45 @@
     <a href="#">About Us</a>
     <a href="#">MES License</a>
     <a href="#">MES V0.5</a>
+  </div>
+</div>
+
+<div class="modal fade" id="termsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">이용약관</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+      </div>
+      <div class="modal-body">
+        <p>본 약관은 MES 서비스 이용에 필요한 기본 사항을 안내합니다.</p>
+        <ul>
+          <li>서비스 이용 목적에 맞게 계정을 생성하고 사용합니다.</li>
+          <li>타인의 계정을 도용하거나 불법 행위를 하지 않습니다.</li>
+          <li>서비스 정책은 공지 후 변경될 수 있습니다.</li>
+        </ul>
+        <p>자세한 내용은 운영 정책에 따라 안내됩니다.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="privacyModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">개인정보 처리방침</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+      </div>
+      <div class="modal-body">
+        <p>개인정보는 서비스 제공을 위해 최소한으로 수집됩니다.</p>
+        <ul>
+          <li>수집 항목: 아이디, 이름, 연락처, 이메일</li>
+          <li>보관 기간: 서비스 이용 기간 및 관련 법령에 따름</li>
+          <li>보안: 암호화 저장 및 접근 통제</li>
+        </ul>
+        <p>자세한 내용은 운영 정책에 따라 안내됩니다.</p>
+      </div>
+    </div>
   </div>
 </div>
