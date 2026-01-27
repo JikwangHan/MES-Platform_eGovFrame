@@ -70,6 +70,16 @@ public class UserDao {
     }
 
     /**
+     * 목적: 승인 대기 사용자를 조회한다.
+     * 기능: status가 pending_approval인 사용자 목록을 반환한다.
+     * 이유: 관리자 승인 화면에 표시하기 위함이다.
+     * 유지보수: 상태 기준이 변경되면 SQL을 수정한다.
+     */
+    public java.util.List<java.util.Map<String, Object>> findPendingApprovalUsers() {
+        return userMapper.findPendingApprovalUsers();
+    }
+
+    /**
      * 목적: 로그인 성공 정보를 기록한다.
      * 기능: 로그인 성공 시간과 실패 횟수를 초기화한다.
      * 이유: 잠금 정책을 일관되게 유지하기 위함이다.

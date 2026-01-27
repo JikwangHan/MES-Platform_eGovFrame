@@ -45,6 +45,14 @@ public interface UserMapper {
     void updateUserStatus(@Param("userId") String userId, @Param("status") String status);
 
     /**
+     * 목적: 승인 대기 사용자 목록을 조회한다.
+     * 기능: pending_approval 상태의 사용자를 반환한다.
+     * 이유: 관리자 승인 화면에 표시하기 위함이다.
+     * 유지보수: 상태 기준이 변경되면 SQL을 수정한다.
+     */
+    java.util.List<java.util.Map<String, Object>> findPendingApprovalUsers();
+
+    /**
      * 목적: 로그인 성공 기록을 남긴다.
      * 기능: 마지막 로그인 시간과 실패 횟수를 초기화한다.
      * 이유: 계정 잠금 정책을 정상화하기 위함이다.

@@ -12,10 +12,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.bind.annotation.GetMapping;
 
+import com.mes.web.common.audit.AuditLogService;
 import com.mes.web.common.auth.PermissionAdminService;
 import com.mes.web.common.auth.PermissionCatalog;
 import com.mes.web.common.auth.PermissionService;
 import com.mes.web.common.auth.RoleAdminService;
+import com.mes.web.dao.UserDao;
 
 /**
  * 목적: 관리자 화면을 제공한다.
@@ -29,6 +31,8 @@ public class AdminController {
     private final PermissionService permissionService;
     private final PermissionAdminService permissionAdminService;
     private final RoleAdminService roleAdminService;
+    private final UserDao userDao;
+    private final AuditLogService auditLogService;
 
     /**
      * 목적: 권한 서비스를 주입받는다.
@@ -38,10 +42,14 @@ public class AdminController {
      */
     @Autowired
     public AdminController(PermissionService permissionService, PermissionAdminService permissionAdminService,
-                           RoleAdminService roleAdminService) {
+                           RoleAdminService roleAdminService,
+                           UserDao userDao,
+                           AuditLogService auditLogService) {
         this.permissionService = permissionService;
         this.permissionAdminService = permissionAdminService;
         this.roleAdminService = roleAdminService;
+        this.userDao = userDao;
+        this.auditLogService = auditLogService;
     }
 
     /**
@@ -51,8 +59,24 @@ public class AdminController {
      * 유지보수: 초기화/권한 기능 추가 시 컨트롤러를 확장한다.
      */
     @GetMapping("/admin/users")
-    public String users() {
+    public String users(Model model) {
+        model.addAttribute("pendingUsers", userDao.findPendingApprovalUsers());
         return "admin/users";
+    }
+
+    /**
+     * 목적: 승인 대기 사용자를 승인 처리한다.
+     * 기능: 사용자 상태를 active로 변경한다.
+     * 이유: 관리자 승인 흐름을 제공하기 위함이다.
+     * 유지보수: 상태 정책 변경 시 로직을 보완한다.
+     */
+    @PostMapping("/admin/users/approve")
+    public String approveUser(@RequestParam("userId") String userId,
+                              RedirectAttributes redirectAttributes) {
+        userDao.updateUserStatus(userId, "active");
+        auditLogService.logEvent("admin.user.approve", "success", getAuthUserId(), "userId=" + userId);
+        redirectAttributes.addFlashAttribute("saveMessage", "승인이 완료되었습니다.");
+        return "redirect:/admin/users";
     }
 
     /**

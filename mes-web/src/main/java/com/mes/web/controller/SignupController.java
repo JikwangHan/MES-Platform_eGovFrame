@@ -17,6 +17,7 @@ import com.mes.web.common.audit.AuditLogService;
 import com.mes.web.common.auth.AuthService;
 import com.mes.web.common.auth.AuthUser;
 import com.mes.web.common.auth.PermissionService;
+import com.mes.web.common.mail.EmailService;
 import com.mes.web.common.tenant.TenantContextHolder;
 import com.mes.web.dao.UserDao;
 import com.mes.web.service.UserRegistrationService;
@@ -35,6 +36,7 @@ public class SignupController {
     private final UserDao userDao;
     private final AuthService authService;
     private final PermissionService permissionService;
+    private final EmailService emailService;
 
     /**
      * 목적: 필요한 서비스를 주입받는다.
@@ -47,12 +49,14 @@ public class SignupController {
                             AuditLogService auditLogService,
                             UserDao userDao,
                             AuthService authService,
-                            PermissionService permissionService) {
+                            PermissionService permissionService,
+                            EmailService emailService) {
         this.userRegistrationService = userRegistrationService;
         this.auditLogService = auditLogService;
         this.userDao = userDao;
         this.authService = authService;
         this.permissionService = permissionService;
+        this.emailService = emailService;
     }
 
     /**
@@ -129,6 +133,18 @@ public class SignupController {
                 request.getSession().setAttribute("SIGNUP_VERIFY_CODE", code);
                 request.getSession().setAttribute("SIGNUP_VERIFY_USER", userId);
                 request.getSession().setAttribute("SIGNUP_VERIFY_EMAIL", email);
+                boolean sent = false;
+                if (emailService.isEnabled()) {
+                    try {
+                        emailService.sendSignupVerification(email, userId, code);
+                        sent = true;
+                    } catch (IllegalStateException ex) {
+                        request.getSession().setAttribute("SIGNUP_VERIFY_ERROR", "이메일 발송에 실패했습니다. 관리자에게 문의해 주세요.");
+                    }
+                } else {
+                    request.getSession().setAttribute("SIGNUP_VERIFY_ERROR", "이메일 설정이 없어 인증 메일을 발송하지 못했습니다.");
+                }
+                request.getSession().setAttribute("SIGNUP_VERIFY_SENT", sent);
                 return "redirect:/signup/verify";
             }
 
@@ -172,9 +188,13 @@ public class SignupController {
         Object userId = request.getSession().getAttribute("SIGNUP_VERIFY_USER");
         Object email = request.getSession().getAttribute("SIGNUP_VERIFY_EMAIL");
         Object code = request.getSession().getAttribute("SIGNUP_VERIFY_CODE");
+        Object sent = request.getSession().getAttribute("SIGNUP_VERIFY_SENT");
+        Object error = request.getSession().getAttribute("SIGNUP_VERIFY_ERROR");
         model.addAttribute("verifyUserId", userId);
         model.addAttribute("verifyEmail", email);
         model.addAttribute("devCode", code);
+        model.addAttribute("verifySent", sent);
+        model.addAttribute("verifyError", error);
         return "page/auth/signup-verify";
     }
 
