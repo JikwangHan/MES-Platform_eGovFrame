@@ -2,3 +2,5 @@
 local_docs/
 ai-middleware/target/
 logs/
+.vscode/
+tools/
