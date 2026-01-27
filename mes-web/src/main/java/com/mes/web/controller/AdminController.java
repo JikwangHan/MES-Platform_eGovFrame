@@ -17,6 +17,9 @@ import com.mes.web.common.auth.PermissionAdminService;
 import com.mes.web.common.auth.PermissionCatalog;
 import com.mes.web.common.auth.PermissionService;
 import com.mes.web.common.auth.RoleAdminService;
+import com.mes.web.common.crypto.CryptoException;
+import com.mes.web.common.crypto.CryptoService;
+import com.mes.web.common.mail.EmailService;
 import com.mes.web.dao.UserDao;
 
 /**
@@ -33,6 +36,8 @@ public class AdminController {
     private final RoleAdminService roleAdminService;
     private final UserDao userDao;
     private final AuditLogService auditLogService;
+    private final CryptoService cryptoService;
+    private final EmailService emailService;
 
     /**
      * 목적: 권한 서비스를 주입받는다.
@@ -44,12 +49,16 @@ public class AdminController {
     public AdminController(PermissionService permissionService, PermissionAdminService permissionAdminService,
                            RoleAdminService roleAdminService,
                            UserDao userDao,
-                           AuditLogService auditLogService) {
+                           AuditLogService auditLogService,
+                           CryptoService cryptoService,
+                           EmailService emailService) {
         this.permissionService = permissionService;
         this.permissionAdminService = permissionAdminService;
         this.roleAdminService = roleAdminService;
         this.userDao = userDao;
         this.auditLogService = auditLogService;
+        this.cryptoService = cryptoService;
+        this.emailService = emailService;
     }
 
     /**
@@ -75,8 +84,36 @@ public class AdminController {
                               RedirectAttributes redirectAttributes) {
         userDao.updateUserStatus(userId, "active");
         auditLogService.logEvent("admin.user.approve", "success", getAuthUserId(), "userId=" + userId);
+        notifyApprovalEmail(userId, true);
         redirectAttributes.addFlashAttribute("saveMessage", "승인이 완료되었습니다.");
         return "redirect:/admin/users";
+    }
+
+    /**
+     * 목적: 승인 결과 알림 메일을 발송한다.
+     * 기능: 사용자 이메일을 복호화해 승인 결과를 전송한다.
+     * 이유: 승인 처리 결과를 사용자에게 전달하기 위함이다.
+     * 유지보수: 이메일 정책 변경 시 이 메서드를 수정한다.
+     */
+    private void notifyApprovalEmail(String userId, boolean approved) {
+        if (!emailService.isEnabled()) {
+            return;
+        }
+        String encryptedEmail = userDao.findEncryptedEmailByUserId(userId);
+        if (encryptedEmail == null) {
+            return;
+        }
+        try {
+            String email = cryptoService.decrypt(encryptedEmail);
+            if (email != null && !email.trim().isEmpty()) {
+                emailService.sendApprovalResult(email, userId, approved);
+                auditLogService.logEvent("admin.user.approve.email", "success", getAuthUserId(), "userId=" + userId);
+            }
+        } catch (CryptoException ex) {
+            auditLogService.logEvent("admin.user.approve.email", "fail", getAuthUserId(), "decrypt_fail");
+        } catch (IllegalStateException ex) {
+            auditLogService.logEvent("admin.user.approve.email", "fail", getAuthUserId(), "send_fail");
+        }
     }
 
     /**

@@ -48,34 +48,23 @@ public class SmtpEmailService implements EmailService {
         if (!isEnabled()) {
             throw new IllegalStateException("이메일 설정이 없어 발송할 수 없습니다.");
         }
-        String host = read("mes.mail.host", "MES_MAIL_HOST");
-        String port = readOrDefault("mes.mail.port", "MES_MAIL_PORT", "587");
-        String username = read("mes.mail.user", "MES_MAIL_USER");
-        String password = read("mes.mail.pass", "MES_MAIL_PASS");
-        String from = read("mes.mail.from", "MES_MAIL_FROM");
-        boolean useTls = Boolean.parseBoolean(readOrDefault("mes.mail.tls", "MES_MAIL_TLS", "true"));
-        boolean useSsl = Boolean.parseBoolean(readOrDefault("mes.mail.ssl", "MES_MAIL_SSL", "false"));
+        sendWithRetry(toEmail, "[MES] 이메일 인증 코드 안내", buildBody(userId, code));
+    }
 
-        Properties props = new Properties();
-        props.put("mail.smtp.host", host);
-        props.put("mail.smtp.port", port);
-        props.put("mail.smtp.auth", username != null ? "true" : "false");
-        props.put("mail.smtp.starttls.enable", String.valueOf(useTls));
-        props.put("mail.smtp.ssl.enable", String.valueOf(useSsl));
-
-        Session session = buildSession(props, username, password);
-        try {
-            Message message = new MimeMessage(session);
-            message.setFrom(new InternetAddress(from));
-            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail));
-            message.setSubject("[MES] 이메일 인증 코드 안내");
-            message.setText(buildBody(userId, code));
-            Transport.send(message);
-            LOGGER.info("이메일 인증 발송 완료: {}", maskEmail(toEmail));
-        } catch (Exception ex) {
-            LOGGER.warn("이메일 발송 실패: {}", ex.getMessage());
-            throw new IllegalStateException("이메일 발송 실패", ex);
+    /**
+     * 목적: 승인 결과 안내 메일을 발송한다.
+     * 기능: 승인 여부를 안내 문구로 전달한다.
+     * 이유: 관리자 승인 결과를 사용자에게 전달하기 위함이다.
+     * 유지보수: 템플릿 변경 시 본문 생성 로직을 수정한다.
+     */
+    @Override
+    public void sendApprovalResult(String toEmail, String userId, boolean approved) {
+        if (!isEnabled()) {
+            throw new IllegalStateException("이메일 설정이 없어 발송할 수 없습니다.");
         }
+        String subject = approved ? "[MES] 회원가입 승인 완료" : "[MES] 회원가입 승인 보류";
+        String body = buildApprovalBody(userId, approved);
+        sendWithRetry(toEmail, subject, body);
     }
 
     private Session buildSession(Properties props, String username, String password) {
@@ -100,6 +89,61 @@ public class SmtpEmailService implements EmailService {
         return sb.toString();
     }
 
+    private String buildApprovalBody(String userId, boolean approved) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("안녕하세요. MES 회원가입 승인 결과 안내입니다.\n\n");
+        sb.append("아이디: ").append(userId).append("\n");
+        if (approved) {
+            sb.append("승인 결과: 승인 완료\n\n");
+            sb.append("이제 로그인할 수 있습니다.\n");
+        } else {
+            sb.append("승인 결과: 보류\n\n");
+            sb.append("승인 보류 사유는 관리자에게 문의해 주세요.\n");
+        }
+        sb.append("본 메일은 자동 발송되며, 회신하지 마세요.\n");
+        return sb.toString();
+    }
+
+    private void sendWithRetry(String toEmail, String subject, String body) {
+        String host = read("mes.mail.host", "MES_MAIL_HOST");
+        String port = readOrDefault("mes.mail.port", "MES_MAIL_PORT", "587");
+        String username = read("mes.mail.user", "MES_MAIL_USER");
+        String password = read("mes.mail.pass", "MES_MAIL_PASS");
+        String from = read("mes.mail.from", "MES_MAIL_FROM");
+        boolean useTls = Boolean.parseBoolean(readOrDefault("mes.mail.tls", "MES_MAIL_TLS", "true"));
+        boolean useSsl = Boolean.parseBoolean(readOrDefault("mes.mail.ssl", "MES_MAIL_SSL", "false"));
+        int retryCount = parseInt(readOrDefault("mes.mail.retry.count", "MES_MAIL_RETRY_COUNT", "1"));
+        int retryDelay = parseInt(readOrDefault("mes.mail.retry.delay.ms", "MES_MAIL_RETRY_DELAY_MS", "500"));
+
+        Properties props = new Properties();
+        props.put("mail.smtp.host", host);
+        props.put("mail.smtp.port", port);
+        props.put("mail.smtp.auth", username != null ? "true" : "false");
+        props.put("mail.smtp.starttls.enable", String.valueOf(useTls));
+        props.put("mail.smtp.ssl.enable", String.valueOf(useSsl));
+
+        Session session = buildSession(props, username, password);
+        int attempts = Math.max(1, retryCount);
+        for (int i = 1; i <= attempts; i++) {
+            try {
+                Message message = new MimeMessage(session);
+                message.setFrom(new InternetAddress(from));
+                message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail));
+                message.setSubject(subject);
+                message.setText(body);
+                Transport.send(message);
+                LOGGER.info("이메일 발송 완료: {}", maskEmail(toEmail));
+                return;
+            } catch (Exception ex) {
+                LOGGER.warn("이메일 발송 실패({}/{}): {}", i, attempts, ex.getMessage());
+                if (i == attempts) {
+                    throw new IllegalStateException("이메일 발송 실패", ex);
+                }
+                sleep(retryDelay);
+            }
+        }
+    }
+
     private String read(String sysKey, String envKey) {
         String value = System.getProperty(sysKey);
         if (value == null || value.trim().isEmpty()) {
@@ -111,6 +155,25 @@ public class SmtpEmailService implements EmailService {
     private String readOrDefault(String sysKey, String envKey, String fallback) {
         String value = read(sysKey, envKey);
         return value == null ? fallback : value;
+    }
+
+    private int parseInt(String value) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException ex) {
+            return 1;
+        }
+    }
+
+    private void sleep(int delayMs) {
+        if (delayMs <= 0) {
+            return;
+        }
+        try {
+            Thread.sleep(delayMs);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private String maskEmail(String email) {

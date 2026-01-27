@@ -23,4 +23,12 @@ public interface EmailService {
      * 유지보수: 템플릿 변경 시 본문 생성 로직을 수정한다.
      */
     void sendSignupVerification(String toEmail, String userId, String code);
+
+    /**
+     * 목적: 사용자 승인 결과 알림을 발송한다.
+     * 기능: 승인/보류 결과를 이메일로 안내한다.
+     * 이유: 관리자 승인 결과를 사용자에게 즉시 전달하기 위함이다.
+     * 유지보수: 템플릿 변경 시 구현체를 수정한다.
+     */
+    void sendApprovalResult(String toEmail, String userId, boolean approved);
 }
