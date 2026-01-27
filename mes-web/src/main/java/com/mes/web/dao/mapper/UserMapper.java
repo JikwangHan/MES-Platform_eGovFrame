@@ -50,7 +50,15 @@ public interface UserMapper {
      * 이유: 관리자 승인 화면에 표시하기 위함이다.
      * 유지보수: 상태 기준이 변경되면 SQL을 수정한다.
      */
-    java.util.List<java.util.Map<String, Object>> findPendingApprovalUsers();
+    java.util.List<java.util.Map<String, Object>> findPendingApprovalUsers(@Param("params") java.util.Map<String, Object> params);
+
+    /**
+     * 목적: 승인 대기 사용자 수를 조회한다.
+     * 기능: 검색 조건에 해당하는 총 건수를 반환한다.
+     * 이유: 페이징 계산에 필요하기 때문이다.
+     * 유지보수: 조건 변경 시 SQL을 수정한다.
+     */
+    int countPendingApprovalUsers(@Param("params") java.util.Map<String, Object> params);
 
     /**
      * 목적: 사용자 이메일(암호문)을 조회한다.

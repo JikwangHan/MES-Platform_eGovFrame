@@ -444,6 +444,15 @@ body {
   margin-right: 8px;
 }
 
+.inline-select {
+  border: 1px solid #dbe4f2;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+  margin-right: 8px;
+  background: #ffffff;
+}
+
 .inline-input:focus {
   outline: none;
   border-color: #38a6e8;
@@ -500,6 +509,88 @@ body {
   border: 1px solid #ddd;
   padding: 12px;
   margin-top: 16px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.queue-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #5c6b7c;
+}
+
+.queue-actions form {
+  margin: 0;
+}
+
+.filter-form {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px dashed #d7e1ef;
+  border-radius: 10px;
+  background: #f9fbff;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.filter-item {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: #5b6b7c;
+}
+
+.filter-item input,
+.filter-item select {
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #dbe4f2;
+  background: #ffffff;
+}
+
+.filter-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+.pagination {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.page-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #d7e1ef;
+  background: #ffffff;
+  color: #4a5b6f;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.page-link.active {
+  background: #0f63e5;
+  border-color: #0f63e5;
+  color: #ffffff;
 }
 
 .form-section label {
