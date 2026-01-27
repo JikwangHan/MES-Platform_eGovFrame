@@ -430,6 +430,26 @@ body {
   line-height: 1.6;
 }
 
+.action-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.inline-input {
+  border: 1px solid #dbe4f2;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  width: 180px;
+  margin-right: 8px;
+}
+
+.inline-input:focus {
+  outline: none;
+  border-color: #38a6e8;
+  box-shadow: 0 0 0 2px rgba(56, 166, 232, 0.2);
+}
+
 .verify-summary {
   display: flex;
   flex-direction: column;

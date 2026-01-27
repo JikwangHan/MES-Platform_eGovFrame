@@ -15,6 +15,9 @@
     <c:if test="${not empty saveMessage}">
       <div class="success">${saveMessage}</div>
     </c:if>
+    <c:if test="${not empty errorMessage}">
+      <div class="error">${errorMessage}</div>
+    </c:if>
     <p>사용자 그리드</p>
     <div class="form-section">
       <h3>승인 대기 사용자</h3>
@@ -30,7 +33,7 @@
                 <th>역할</th>
                 <th>상태</th>
                 <th>요청일</th>
-                <th>승인</th>
+                <th>처리</th>
               </tr>
             </thead>
             <tbody>
@@ -41,10 +44,18 @@
                   <td><c:out value="${user.status}" /></td>
                   <td><c:out value="${user.created_at}" /></td>
                   <td>
-                    <form method="post" action="${pageContext.request.contextPath}/admin/users/approve">
-                      <input type="hidden" name="userId" value="${user.user_id}" />
-                      <button type="submit" class="btn btn-primary btn-sm">승인</button>
-                    </form>
+                    <div class="action-stack">
+                      <form method="post" action="${pageContext.request.contextPath}/admin/users/approve">
+                        <input type="hidden" name="userId" value="${user.user_id}" />
+                        <input type="text" name="reason" class="inline-input" placeholder="승인 사유(선택)" />
+                        <button type="submit" class="btn btn-primary btn-sm">승인</button>
+                      </form>
+                      <form method="post" action="${pageContext.request.contextPath}/admin/users/reject">
+                        <input type="hidden" name="userId" value="${user.user_id}" />
+                        <input type="text" name="reason" class="inline-input" placeholder="반려 사유(필수)" />
+                        <button type="submit" class="btn btn-outline-danger btn-sm">반려</button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               </c:forEach>

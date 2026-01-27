@@ -81,11 +81,35 @@ public class AdminController {
      */
     @PostMapping("/admin/users/approve")
     public String approveUser(@RequestParam("userId") String userId,
+                              @RequestParam(value = "reason", required = false) String reason,
                               RedirectAttributes redirectAttributes) {
         userDao.updateUserStatus(userId, "active");
-        auditLogService.logEvent("admin.user.approve", "success", getAuthUserId(), "userId=" + userId);
+        String detail = "userId=" + userId + ",reason=" + safeReason(reason);
+        auditLogService.logEvent("admin.user.approve", "success", getAuthUserId(), detail);
         notifyApprovalEmail(userId, true);
         redirectAttributes.addFlashAttribute("saveMessage", "승인이 완료되었습니다.");
+        return "redirect:/admin/users";
+    }
+
+    /**
+     * 목적: 승인 대기 사용자를 반려 처리한다.
+     * 기능: 사용자 상태를 inactive로 변경한다.
+     * 이유: 승인 보류/거절 흐름을 제공하기 위함이다.
+     * 유지보수: 상태 정책 변경 시 로직을 보완한다.
+     */
+    @PostMapping("/admin/users/reject")
+    public String rejectUser(@RequestParam("userId") String userId,
+                             @RequestParam(value = "reason", required = false) String reason,
+                             RedirectAttributes redirectAttributes) {
+        if (reason == null || reason.trim().isEmpty()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "반려 사유를 입력해 주세요.");
+            return "redirect:/admin/users";
+        }
+        userDao.updateUserStatus(userId, "inactive");
+        String detail = "userId=" + userId + ",reason=" + safeReason(reason);
+        auditLogService.logEvent("admin.user.reject", "success", getAuthUserId(), detail);
+        notifyApprovalEmail(userId, false);
+        redirectAttributes.addFlashAttribute("saveMessage", "반려 처리되었습니다.");
         return "redirect:/admin/users";
     }
 
@@ -107,13 +131,29 @@ public class AdminController {
             String email = cryptoService.decrypt(encryptedEmail);
             if (email != null && !email.trim().isEmpty()) {
                 emailService.sendApprovalResult(email, userId, approved);
-                auditLogService.logEvent("admin.user.approve.email", "success", getAuthUserId(), "userId=" + userId);
+                String event = approved ? "admin.user.approve.email" : "admin.user.reject.email";
+                auditLogService.logEvent(event, "success", getAuthUserId(), "userId=" + userId);
             }
         } catch (CryptoException ex) {
-            auditLogService.logEvent("admin.user.approve.email", "fail", getAuthUserId(), "decrypt_fail");
+            String event = approved ? "admin.user.approve.email" : "admin.user.reject.email";
+            auditLogService.logEvent(event, "fail", getAuthUserId(), "decrypt_fail");
         } catch (IllegalStateException ex) {
-            auditLogService.logEvent("admin.user.approve.email", "fail", getAuthUserId(), "send_fail");
+            String event = approved ? "admin.user.approve.email" : "admin.user.reject.email";
+            auditLogService.logEvent(event, "fail", getAuthUserId(), "send_fail");
         }
+    }
+
+    /**
+     * 목적: 반려 사유를 안전한 문자열로 변환한다.
+     * 기능: 줄바꿈/구분자를 제거해 로그 파싱을 안전하게 한다.
+     * 이유: 감사 로그 형식을 유지하기 위함이다.
+     * 유지보수: 로그 포맷 변경 시 처리 규칙을 수정한다.
+     */
+    private String safeReason(String reason) {
+        if (reason == null) {
+            return "none";
+        }
+        return reason.replace("\n", " ").replace("\r", " ").replace(",", " ");
     }
 
     /**
