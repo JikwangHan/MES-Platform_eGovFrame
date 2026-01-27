@@ -80,6 +80,16 @@ public class UserDao {
     }
 
     /**
+     * 목적: 사용자 이메일(암호문)을 조회한다.
+     * 기능: user_id 기준으로 암호화된 이메일을 반환한다.
+     * 이유: 승인 결과 알림 발송에 사용하기 위함이다.
+     * 유지보수: 컬럼/암호화 정책 변경 시 SQL을 수정한다.
+     */
+    public String findEncryptedEmailByUserId(String userId) {
+        return userMapper.findEncryptedEmailByUserId(userId);
+    }
+
+    /**
      * 목적: 로그인 성공 정보를 기록한다.
      * 기능: 로그인 성공 시간과 실패 횟수를 초기화한다.
      * 이유: 잠금 정책을 일관되게 유지하기 위함이다.

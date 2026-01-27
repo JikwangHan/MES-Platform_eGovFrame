@@ -11,6 +11,8 @@
 - `MES_MAIL_FROM` 또는 `-Dmes.mail.from` (필수)
 - `MES_MAIL_TLS` 또는 `-Dmes.mail.tls` (기본 true)
 - `MES_MAIL_SSL` 또는 `-Dmes.mail.ssl` (기본 false)
+- `MES_MAIL_RETRY_COUNT` 또는 `-Dmes.mail.retry.count` (기본 1)
+- `MES_MAIL_RETRY_DELAY_MS` 또는 `-Dmes.mail.retry.delay.ms` (기본 500ms)
 
 ## 승인/인증 흐름 제어
 - 관리자 승인 사용: `-Dmes.signup.requireApproval=true`
