@@ -416,6 +416,20 @@ body {
   text-decoration: underline;
 }
 
+.modal-content {
+  border-radius: 14px;
+}
+
+.modal-header {
+  border-bottom: 1px solid #eef2f7;
+}
+
+.modal-body {
+  color: #46566a;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
 .verify-summary {
   display: flex;
   flex-direction: column;
