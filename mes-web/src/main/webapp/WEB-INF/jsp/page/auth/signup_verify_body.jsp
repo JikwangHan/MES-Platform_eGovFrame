@@ -30,6 +30,9 @@
       <c:if test="${verifySent eq true}">
         <div class="success">인증 메일이 발송되었습니다. 받은 코드를 입력해 주세요.</div>
       </c:if>
+      <c:if test="${verifySent ne true}">
+        <div class="notice">이메일 발송이 비활성화되어 화면에 표시된 인증 코드를 사용하세요.</div>
+      </c:if>
       <c:if test="${not empty devCode}">
         <div class="success">개발용 인증 코드: ${devCode}</div>
       </c:if>

@@ -15,6 +15,7 @@
     <jackson.version>2.15.4</jackson.version>
     <slf4j.version>1.7.36</slf4j.version>
     <logback.version>1.2.12</logback.version>
+    <javax.mail.version>1.6.2</javax.mail.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
@@ -88,7 +89,7 @@
     <dependency>
       <groupId>com.sun.mail</groupId>
       <artifactId>javax.mail</artifactId>
-      <version>1.6.2</version>
+      <version>${javax.mail.version}</version>
     </dependency>
   </dependencies>
 
